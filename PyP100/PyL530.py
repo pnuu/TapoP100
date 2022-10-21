@@ -76,6 +76,7 @@ class L530(PyP100.P100):
         Payload = {
         	"method": "set_device_info",
         	"params":{
+        		"color_temp": 0,
         		"hue": hue,
         		"saturation": saturation
         	},

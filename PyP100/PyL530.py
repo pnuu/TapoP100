@@ -11,6 +11,7 @@ class L530(PyP100.P100):
     def setBrightness(self, brightness):
         URL = f"http://{self.ipAddress}/app?token={self.token}"
         Payload = {
+        		"device_on": True,
 			"method": "set_device_info",
 			"params":{
 				"brightness": brightness
@@ -43,6 +44,7 @@ class L530(PyP100.P100):
     def setColorTemp(self, colortemp):
         URL = f"http://{self.ipAddress}/app?token={self.token}"
         Payload = {
+       		"device_on": True,
         	"method": "set_device_info",
         	"params":{
         		"color_temp": colortemp
@@ -77,6 +79,7 @@ class L530(PyP100.P100):
         	"method": "set_device_info",
         	"params":{
         		"color_temp": 0,
+        		"device_on": True,
         		"hue": hue,
         		"saturation": saturation
         	},

@@ -1,5 +1,7 @@
 """Module for handling Tapo P100 sockets."""
 
+import logging
+
 import requests
 from requests import Session
 
@@ -12,6 +14,8 @@ from Crypto.Cipher import PKCS1_v1_5
 from . import tp_link_cipher
 import ast
 import uuid
+
+LOGGER = logging.getLogger(__name__)
 
 
 # Old Functions to get device list from tplinkcloud
@@ -47,7 +51,8 @@ ERROR_CODES = {
     "-1012": "Invalid terminalUUID",
     "-1501": "Invalid Request or Credentials",
     "1002": "Incorrect Request",
-    "-1003": "JSON formatting error "
+    "-1003": "JSON formatting error",
+    "-1008": "Invalid value",
 }
 COOKIE_NAME = "TP_SESSIONID"
 
@@ -121,7 +126,6 @@ class P100():
             self._headers = {
                 "Cookie": f"{COOKIE_NAME}={r.cookies[COOKIE_NAME]}"
             }
-
         except Exception:
             error_code = r.json()["error_code"]
             error_message = self._error_codes[str(error_code)]
@@ -142,14 +146,13 @@ class P100():
         payload = self._get_secure_payload(
             self._get_login_payload()
         )
-        response = self._get_response(url, payload)
 
         try:
+            response = self._get_response(url, payload)
             self._token = ast.literal_eval(response)["result"]["token"]
         except Exception:
-            error_code = ast.literal_eval(response)["error_code"]
-            error_message = self._error_codes[str(error_code)]
-            raise Exception(f"Error Code: {error_code}, {error_message}")
+            self._log_error(response)
+            raise
 
     def _get_secure_payload(self, payload):
         return {
@@ -180,12 +183,16 @@ class P100():
             self._get_set_device_info_payload(params={"device_on": True})
         )
 
-        response = self._get_response(url, payload)
+        try:
+            response = self._get_response(url, payload)
+        finally:
+            self._log_errors(response)
 
+    def _log_errors(self, response):
         if ast.literal_eval(response)["error_code"] != 0:
             error_code = ast.literal_eval(response)["error_code"]
             error_message = self._error_codes[str(error_code)]
-            raise Exception(f"Error Code: {error_code}, {error_message}")
+            LOGGER.error(f"Error code: {error_code}, {error_message}")
 
     def _get_set_device_info_payload(self, params=None):
         return {
@@ -202,12 +209,10 @@ class P100():
             self._get_set_device_info_payload(params={"device_on": False})
         )
 
-        response = self._get_response(url, payload)
-
-        if ast.literal_eval(response)["error_code"] != 0:
-            error_code = ast.literal_eval(response)["error_code"]
-            error_message = self._error_codes[str(error_code)]
-            raise Exception(f"Error Code: {error_code}, {error_message}")
+        try:
+            response = self._get_response(url, payload)
+        finally:
+            self._log_errors(response)
 
     def get_device_info(self):
         """Retrieve current settings from the device."""
@@ -216,7 +221,10 @@ class P100():
             _get_device_info_payload()
         )
 
-        response = self._get_response(url, payload)
+        try:
+            response = self._get_response(url, payload)
+        finally:
+            self._log_errors(response)
 
         return json.loads(response)
 
@@ -242,12 +250,10 @@ class P100():
             self._get_add_countdown_rule_payload(delay, True)
         )
 
-        response = self._get_response(url, payload)
-
-        if ast.literal_eval(response)["error_code"] != 0:
-            error_code = ast.literal_eval(response)["error_code"]
-            error_message = self._error_codes[str(error_code)]
-            raise Exception(f"Error Code: {error_code}, {error_message}")
+        try:
+            response = self._get_response(url, payload)
+        finally:
+            self._log_errors(response)
 
     def _get_add_countdown_rule_payload(self, delay, state):
         return {
@@ -270,12 +276,10 @@ class P100():
             self._get_add_countdown_rule_payload(delay, False)
         )
 
-        response = self._get_response(url, payload)
-
-        if ast.literal_eval(response)["error_code"] != 0:
-            error_code = ast.literal_eval(response)["error_code"]
-            error_message = self._error_codes[str(error_code)]
-            raise Exception(f"Error Code: {error_code}, {error_message}")
+        try:
+            response = self._get_response(url, payload)
+        finally:
+            self._log_errors(response)
 
 
 def sha_digest(data):

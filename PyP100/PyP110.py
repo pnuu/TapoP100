@@ -6,7 +6,7 @@ import json
 import logging
 import time
 
-_LOGGER = logging.getLogger(__name__)
+LOGGER = logging.getLogger(__name__)
 
 
 class P110(PyP100.P100):
@@ -25,8 +25,10 @@ class P110(PyP100.P100):
                 "request": self._tplink_cipher.encrypt(json.dumps(payload))
             }
         }
-        _LOGGER.debug("getEnergyUsage %s", self.ip_address)
+        LOGGER.debug("getEnergyUsage %s", self.ip_address)
 
         response = self._get_response(url, payload)
+
+        self._log_errors(response)
 
         return json.loads(response)

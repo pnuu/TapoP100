@@ -7,7 +7,7 @@ import logging
 import time
 import ast
 
-_LOGGER = logging.getLogger(__name__)
+LOGGER = logging.getLogger(__name__)
 
 
 class L530(PyP100.P100):
@@ -24,12 +24,10 @@ class L530(PyP100.P100):
             self._get_set_device_info_payload(params={"brightness": brightness})
         )
 
-        response = self._get_response(url, payload)
-
-        if ast.literal_eval(response)["error_code"] != 0:
-            error_code = ast.literal_eval(response)["error_code"]
-            error_message = self._error_codes[str(error_code)]
-            raise Exception(f"Error Code: {error_code}, {error_message}")
+        try:
+            response = self._get_response(url, payload)
+        finally:
+            self._log_errors(response)
 
     def set_color_temperature(self, colortemp):
         """Set color temperature of white light.
@@ -42,12 +40,10 @@ class L530(PyP100.P100):
             self._get_set_device_info_payload(params={"color_temp": colortemp})
         )
 
-        response = self._get_response(url, payload)
-
-        if ast.literal_eval(response)["error_code"] != 0:
-            error_code = ast.literal_eval(response)["error_code"]
-            error_message = self._error_codes[str(error_code)]
-            print(error_message)
+        try:
+            response = self._get_response(url, payload)
+        finally:
+            self._log_errors(response)
 
     def set_hue_saturation(self, hue, saturation):
         """Set hue and saturation.
@@ -61,9 +57,7 @@ class L530(PyP100.P100):
             self._get_set_device_info_payload(params={"hue": hue, "saturation": saturation})
         )
 
-        response = self._get_response(url, payload)
-
-        if ast.literal_eval(response)["error_code"] != 0:
-            error_code = ast.literal_eval(response)["error_code"]
-            error_message = self._error_codes[str(error_code)]
-            print(error_message)
+        try:
+            response = self._get_response(url, payload)
+        finally:
+            self._log_errors(response)

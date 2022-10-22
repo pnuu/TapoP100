@@ -94,23 +94,15 @@ class P100():
 
     def _decode_handshake_key(self, key):
         """Decode handshake."""
-        decode: bytes = b64decode(key.encode("UTF-8"))
-        decode2: bytes = self._private_key
+        decoded_key: bytes = b64decode(key.encode("UTF-8"))
+        decoded_private_key: bytes = self._private_key
 
-        cipher = PKCS1_v1_5.new(RSA.importKey(decode2))
-        do_final = cipher.decrypt(decode, None)
-        if do_final is None:
+        cipher = PKCS1_v1_5.new(RSA.importKey(decoded_private_key))
+        decrypted_key = cipher.decrypt(decoded_key, None)
+        if decrypted_key is None:
             raise ValueError("Decryption failed!")
 
-        b_arr: bytearray = bytearray()
-        b_arr2: bytearray = bytearray()
-
-        for i in range(0, 16):
-            b_arr.insert(i, do_final[i])
-        for i in range(0, 16):
-            b_arr2.insert(i, do_final[i + 16])
-
-        return tp_link_cipher.TpLinkCipher(b_arr, b_arr2)
+        return tp_link_cipher.TpLinkCipher(decrypted_key[:16], decrypted_key[16:])
 
     def _handshake(self):
         """Handle handshake with the device."""

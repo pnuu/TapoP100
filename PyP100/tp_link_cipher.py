@@ -29,7 +29,7 @@ class TpLinkCipher:
         data: str
         cipher = AES.new(bytes(self.key), AES.MODE_CBC, bytes(self.iv))
         encrypted = cipher.encrypt(data.encode("UTF-8"))
-        return self.mime_encoder(encrypted).replace("\r\n","")
+        return self.mime_encoder(encrypted).replace("\r\n", "")
 
     def decrypt(self, data: str):
         """Decrypt the data."""

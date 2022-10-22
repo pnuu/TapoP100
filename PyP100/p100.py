@@ -2,7 +2,7 @@
 
 import logging
 
-import requests
+from requests.exceptions import ConnectTimeout
 from requests import Session
 
 from base64 import b64decode
@@ -28,6 +28,7 @@ ERROR_CODES = {
     "-1008": "Invalid value",
 }
 COOKIE_NAME = "TP_SESSIONID"
+RETRIES = 5
 
 
 class P100:
@@ -82,17 +83,16 @@ class P100:
         url = f"http://{self.ip_address}/app"
         payload = self._get_handshake_payload()
 
-        r = self._session.post(url, json=payload, timeout=2)
-
-        encrypted_key = r.json()["result"]["key"]
+        response = _get_response_with_retries(self._session, url, payload)
+        encrypted_key = response.json()["result"]["key"]
         self._tplink_cipher = self._decode_handshake_key(encrypted_key)
 
         try:
             self._headers = {
-                "Cookie": f"{COOKIE_NAME}={r.cookies[COOKIE_NAME]}"
+                "Cookie": f"{COOKIE_NAME}={response.cookies[COOKIE_NAME]}"
             }
         except Exception:
-            error_code = r.json()["error_code"]
+            error_code = response.json()["error_code"]
             error_message = self._error_codes[str(error_code)]
             raise Exception(f"Error Code: {error_code}, {error_message}")
 
@@ -116,7 +116,7 @@ class P100:
             response = self._get_response(url, payload)
             self._token = ast.literal_eval(response)["result"]["token"]
         except Exception:
-            self._log_error(response)
+            self._log_errors(response)
             raise
 
     def _get_secure_payload(self, payload):
@@ -138,7 +138,7 @@ class P100:
         }
 
     def _get_response(self, url, payload):
-        response = self._session.post(url, json=payload, headers=self._headers, timeout=2)
+        response = _get_response_with_retries(self._session, url, payload, headers=self._headers)
         return self._tplink_cipher.decrypt(response.json()["result"]["response"])
 
     def turn_on(self):
@@ -272,3 +272,12 @@ def _get_device_info_payload():
         "method": "get_device_info",
         "requestTimeMils": int(round(time.time() * 1000)),
     }
+
+
+def _get_response_with_retries(session, url, payload, headers=None):
+    for _ in range(RETRIES):
+        try:
+            response = session.post(url, json=payload, headers=headers, timeout=2)
+            return response
+        except ConnectTimeout:
+            time.sleep(0.1)

@@ -1,3 +1,5 @@
+"""Module for handling Tapo P110 power monitoring sockets."""
+
 from PyP100 import PyP100
 
 import json
@@ -6,9 +8,12 @@ import time
 
 _LOGGER = logging.getLogger(__name__)
 
+
 class P110(PyP100.P100):
+    """Control Tapo P110 sockets."""
 
     def getEnergyUsage(self):
+        """Get the energy usage from the device."""
         URL = f"http://{self.ipAddress}/app?token={self.token}"
         Payload = {
             "method": "get_energy_usage",

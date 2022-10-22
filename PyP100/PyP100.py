@@ -1,3 +1,5 @@
+"""Module for handling Tapo P100 sockets."""
+
 import requests
 from requests import Session
 
@@ -16,6 +18,7 @@ import json
 
 #Old Functions to get device list from tplinkcloud
 def getToken(email, password):
+    """Get login token."""
     URL = "https://eu-wap.tplinkcloud.com"
     Payload = {
         "method": "login",
@@ -29,13 +32,16 @@ def getToken(email, password):
 
     return requests.post(URL, json=Payload).json()['result']['token']
 
+
 def getDeviceList(email, password):
+    """Get list of devices from TP-Link cloud."""
     URL = "https://eu-wap.tplinkcloud.com?token=" + getToken(email, password)
     Payload = {
         "method": "getDeviceList",
     }
 
     return requests.post(URL, json=Payload).json()
+
 
 ERROR_CODES = {
     "0": "Success",
@@ -46,8 +52,12 @@ ERROR_CODES = {
     "-1003": "JSON formatting error "
 }
 
+
 class P100():
+    """Control Tapo P100 sockets."""
+
     def __init__ (self, ipAddress, email, password):
+        """Initialize the class."""
         self.ipAddress = ipAddress
         self.terminalUUID = str(uuid.uuid4())
 
@@ -62,7 +72,8 @@ class P100():
         self.createKeyPair()
 
     def encryptCredentials(self, email, password):
-        #Password Encoding
+        """Encrypt credentials."""
+        # Password Encoding
         self.encodedPassword = tp_link_cipher.TpLinkCipher.mime_encoder(password.encode("utf-8"))
 
         #Email Encoding
@@ -70,12 +81,14 @@ class P100():
         self.encodedEmail = tp_link_cipher.TpLinkCipher.mime_encoder(self.encodedEmail.encode("utf-8"))
 
     def createKeyPair(self):
+        """Create private and public keys."""
         self.keys = RSA.generate(1024)
 
         self.privateKey = self.keys.exportKey("PEM")
         self.publicKey  = self.keys.publickey().exportKey("PEM")
 
     def decode_handshake_key(self, key):
+        """Decode handshake."""
         decode: bytes = b64decode(key.encode("UTF-8"))
         decode2: bytes = self.privateKey
 
@@ -95,6 +108,7 @@ class P100():
         return tp_link_cipher.TpLinkCipher(b_arr, b_arr2)
 
     def sha_digest_username(self, data):
+        """Digest username SHA."""
         b_arr = data.encode("UTF-8")
         digest = hashlib.sha1(b_arr).digest()
 
@@ -111,6 +125,7 @@ class P100():
         return sb
 
     def handshake(self):
+        """Handle handshake with the device."""
         URL = f"http://{self.ipAddress}/app"
         Payload = {
             "method":"handshake",
@@ -134,6 +149,7 @@ class P100():
             raise Exception(f"Error Code: {errorCode}, {errorMessage}")
 
     def login(self):
+        """Handle login with the device."""
         URL = f"http://{self.ipAddress}/app"
         Payload = {
             "method":"login_device",
@@ -168,6 +184,7 @@ class P100():
             raise Exception(f"Error Code: {errorCode}, {errorMessage}")
 
     def turnOn(self):
+        """Power on the device."""
         URL = f"http://{self.ipAddress}/app?token={self.token}"
         Payload = {
             "method": "set_device_info",
@@ -201,6 +218,7 @@ class P100():
             raise Exception(f"Error Code: {errorCode}, {errorMessage}")
 
     def turnOff(self):
+        """Power off the device."""
         URL = f"http://{self.ipAddress}/app?token={self.token}"
         Payload = {
             "method": "set_device_info",
@@ -234,6 +252,7 @@ class P100():
             raise Exception(f"Error Code: {errorCode}, {errorMessage}")
 
     def getDeviceInfo(self):
+        """Retrieve current settings from the device."""
         URL = f"http://{self.ipAddress}/app?token={self.token}"
         Payload = {
             "method": "get_device_info",
@@ -259,6 +278,7 @@ class P100():
         return json.loads(decryptedResponse)
 
     def getDeviceName(self):
+        """Get the device name."""
         self.handshake()
         self.login()
         data = self.getDeviceInfo()
@@ -273,6 +293,7 @@ class P100():
             return name.decode("utf-8")
 
     def turnOnWithDelay(self, delay):
+        """Switch on the device with a time delay."""
         URL = f"http://{self.ipAddress}/app?token={self.token}"
         Payload = {
             "method": "add_countdown_rule",
@@ -310,6 +331,7 @@ class P100():
             raise Exception(f"Error Code: {errorCode}, {errorMessage}")
 
     def turnOffWithDelay(self, delay):
+        """Switch off the device with a time delay."""
         URL = f"http://{self.ipAddress}/app?token={self.token}"
         Payload = {
             "method": "add_countdown_rule",

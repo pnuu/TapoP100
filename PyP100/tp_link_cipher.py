@@ -1,15 +1,20 @@
+"""Module for handling the TP-Link cipher."""
 from Crypto.Cipher import AES
 import pkcs7
 import base64
 
 
 class TpLinkCipher:
+    """TP-Link cipher handling."""
+
     def __init__(self, b_arr: bytearray, b_arr2: bytearray):
+        """Initialize the class."""
         self.iv = b_arr2
         self.key = b_arr
 
     @staticmethod
     def mime_encoder(to_encode: bytes):
+        """MIME encode the given byte string."""
         encoded_list = list(base64.b64encode(to_encode).decode("UTF-8"))
 
         count = 0
@@ -19,6 +24,7 @@ class TpLinkCipher:
         return ''.join(encoded_list)
 
     def encrypt(self, data):
+        """Encrypt the data."""
         data = pkcs7.PKCS7Encoder().encode(data)
         data: str
         cipher = AES.new(bytes(self.key), AES.MODE_CBC, bytes(self.iv))
@@ -26,6 +32,7 @@ class TpLinkCipher:
         return TpLinkCipher.mime_encoder(encrypted).replace("\r\n","")
 
     def decrypt(self, data: str):
+        """Decrypt the data."""
         aes = AES.new(bytes(self.key), AES.MODE_CBC, bytes(self.iv))
         pad_text = aes.decrypt(base64.b64decode(data.encode("UTF-8"))).decode("UTF-8")
         return pkcs7.PKCS7Encoder().decode(pad_text)

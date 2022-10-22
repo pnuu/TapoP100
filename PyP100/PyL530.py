@@ -12,25 +12,25 @@ class L530(PyP100.P100):
         self.turnOn()
         URL = f"http://{self.ipAddress}/app?token={self.token}"
         Payload = {
-			"method": "set_device_info",
-			"params":{
-				"brightness": brightness
-			},
-			"requestTimeMils": int(round(time.time() * 1000)),
-		}
+            "method": "set_device_info",
+            "params":{
+                "brightness": brightness
+            },
+            "requestTimeMils": int(round(time.time() * 1000)),
+        }
 
         headers = {
-			"Cookie": self.cookie
-		}
+            "Cookie": self.cookie
+        }
 
         EncryptedPayload = self.tpLinkCipher.encrypt(json.dumps(Payload))
 
         SecurePassthroughPayload = {
-			"method": "securePassthrough",
-			"params":{
-				"request": EncryptedPayload
-			}
-		}
+            "method": "securePassthrough",
+            "params":{
+                "request": EncryptedPayload
+            }
+        }
 
         r = self.session.post(URL, json=SecurePassthroughPayload, headers=headers, timeout=2)
 
@@ -45,24 +45,24 @@ class L530(PyP100.P100):
         self.turnOn()
         URL = f"http://{self.ipAddress}/app?token={self.token}"
         Payload = {
-        	"method": "set_device_info",
-        	"params":{
-        		"color_temp": colortemp
-        	},
-        	"requestTimeMils": int(round(time.time() * 1000)),
+            "method": "set_device_info",
+            "params":{
+                "color_temp": colortemp
+            },
+            "requestTimeMils": int(round(time.time() * 1000)),
         }
 
         headers = {
-        	"Cookie": self.cookie
+            "Cookie": self.cookie
         }
 
         EncryptedPayload = self.tpLinkCipher.encrypt(json.dumps(Payload))
 
         SecurePassthroughPayload = {
-        	"method": "securePassthrough",
-        	"params":{
-        		"request": EncryptedPayload
-        	}
+            "method": "securePassthrough",
+            "params":{
+                "request": EncryptedPayload
+            }
         }
 
         r = self.session.post(URL, json=SecurePassthroughPayload, headers=headers, timeout=2)
@@ -70,33 +70,33 @@ class L530(PyP100.P100):
         decryptedResponse = self.tpLinkCipher.decrypt(r.json()["result"]["response"])
 
         if ast.literal_eval(decryptedResponse)["error_code"] != 0:
-        	errorCode = ast.literal_eval(decryptedResponse)["error_code"]
-        	errorMessage = self.errorCodes[str(errorCode)]
+            errorCode = ast.literal_eval(decryptedResponse)["error_code"]
+            errorMessage = self.errorCodes[str(errorCode)]
 
     def setColor(self, hue, saturation):
         self.setColorTemp(0)
         self.turnOn()
         URL = f"http://{self.ipAddress}/app?token={self.token}"
         Payload = {
-        	"method": "set_device_info",
-        	"params":{
-        		"hue": hue,
-        		"saturation": saturation
-        	},
-        	"requestTimeMils": int(round(time.time() * 1000)),
+            "method": "set_device_info",
+            "params":{
+                "hue": hue,
+                "saturation": saturation
+            },
+            "requestTimeMils": int(round(time.time() * 1000)),
         }
 
         headers = {
-        	"Cookie": self.cookie
+            "Cookie": self.cookie
         }
 
         EncryptedPayload = self.tpLinkCipher.encrypt(json.dumps(Payload))
 
         SecurePassthroughPayload = {
-        	"method": "securePassthrough",
-        	"params":{
-        		"request": EncryptedPayload
-        	}
+            "method": "securePassthrough",
+            "params":{
+                "request": EncryptedPayload
+            }
         }
 
         r = self.session.post(URL, json=SecurePassthroughPayload, headers=headers, timeout=2)
@@ -104,5 +104,5 @@ class L530(PyP100.P100):
         decryptedResponse = self.tpLinkCipher.decrypt(r.json()["result"]["response"])
 
         if ast.literal_eval(decryptedResponse)["error_code"] != 0:
-        	errorCode = ast.literal_eval(decryptedResponse)["error_code"]
-        	errorMessage = self.errorCodes[str(errorCode)]
+            errorCode = ast.literal_eval(decryptedResponse)["error_code"]
+            errorMessage = self.errorCodes[str(errorCode)]

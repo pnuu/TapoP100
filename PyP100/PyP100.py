@@ -206,6 +206,13 @@ class P100():
         finally:
             self._log_errors(response)
 
+    def toggle_power(self):
+        """Toggle device on/off."""
+        if self.get_device_info()["result"]["device_on"]:
+            self.turn_off()
+        else:
+            self.turn_on()
+
     def get_device_info(self):
         """Retrieve current settings from the device."""
         url = f"http://{self.ip_address}/app?token={self._token}"

@@ -15,10 +15,10 @@ import uuid
 
 
 # Old Functions to get device list from tplinkcloud
-def getToken(email, password):
+def get_token(email, password):
     """Get login token."""
-    URL = "https://eu-wap.tplinkcloud.com"
-    Payload = {
+    url = "https://eu-wap.tplinkcloud.com"
+    payload = {
         "method": "login",
         "params": {
             "appType": "Tapo_Ios",
@@ -28,17 +28,17 @@ def getToken(email, password):
         }
     }
 
-    return requests.post(URL, json=Payload).json()['result']['token']
+    return requests.post(url, json=payload).json()['result']['token']
 
 
-def getDeviceList(email, password):
+def get_device_list(email, password):
     """Get list of devices from TP-Link cloud."""
-    URL = "https://eu-wap.tplinkcloud.com?token=" + getToken(email, password)
-    Payload = {
+    url = "https://eu-wap.tplinkcloud.com?token=" + get_token(email, password)
+    payload = {
         "method": "getDeviceList",
     }
 
-    return requests.post(URL, json=Payload).json()
+    return requests.post(url, json=payload).json()
 
 
 ERROR_CODES = {
@@ -54,41 +54,41 @@ ERROR_CODES = {
 class P100():
     """Control Tapo P100 sockets."""
 
-    def __init__(self, ipAddress, email, password):
+    def __init__(self, ip_address, email, password):
         """Initialize the class."""
-        self.ipAddress = ipAddress
-        self.terminalUUID = str(uuid.uuid4())
+        self.ip_address = ip_address
+        self.terminal_uuid = str(uuid.uuid4())
 
         self.email = email
         self.password = password
         self.session = Session()
         self.cookie_name = "TP_SESSIONID"
 
-        self.errorCodes = ERROR_CODES
+        self.error_codes = ERROR_CODES
 
-        self.encryptCredentials(email, password)
-        self.createKeyPair()
+        self.encrypt_credentials(email, password)
+        self.create_key_pair()
 
-    def encryptCredentials(self, email, password):
+    def encrypt_credentials(self, email, password):
         """Encrypt credentials."""
         # Password Encoding
-        self.encodedPassword = tp_link_cipher.TpLinkCipher.mime_encoder(password.encode("utf-8"))
+        self.encoded_password = tp_link_cipher.TpLinkCipher.mime_encoder(password.encode("utf-8"))
 
         # Email Encoding
-        self.encodedEmail = self.sha_digest_username(email)
-        self.encodedEmail = tp_link_cipher.TpLinkCipher.mime_encoder(self.encodedEmail.encode("utf-8"))
+        self.encoded_email = self.sha_digest_username(email)
+        self.encoded_email = tp_link_cipher.TpLinkCipher.mime_encoder(self.encoded_email.encode("utf-8"))
 
-    def createKeyPair(self):
+    def create_key_pair(self):
         """Create private and public keys."""
         self.keys = RSA.generate(1024)
 
-        self.privateKey = self.keys.exportKey("PEM")
-        self.publicKey = self.keys.publickey().exportKey("PEM")
+        self.private_key = self.keys.exportKey("PEM")
+        self.public_key = self.keys.public_key().exportKey("PEM")
 
     def decode_handshake_key(self, key):
         """Decode handshake."""
         decode: bytes = b64decode(key.encode("UTF-8"))
-        decode2: bytes = self.privateKey
+        decode2: bytes = self.private_key
 
         cipher = PKCS1_v1_5.new(RSA.importKey(decode2))
         do_final = cipher.decrypt(decode, None)
@@ -124,36 +124,36 @@ class P100():
 
     def handshake(self):
         """Handle handshake with the device."""
-        URL = f"http://{self.ipAddress}/app"
-        Payload = {
+        url = f"http://{self.ip_address}/app"
+        payload = {
             "method": "handshake",
             "params": {
-                "key": self.publicKey.decode("utf-8"),
+                "key": self.public_key.decode("utf-8"),
                 "requestTimeMils": int(round(time.time() * 1000))
             }
         }
 
-        r = self.session.post(URL, json=Payload, timeout=2)
+        r = self.session.post(url, json=payload, timeout=2)
 
-        encryptedKey = r.json()["result"]["key"]
-        self.tpLinkCipher = self.decode_handshake_key(encryptedKey)
+        encrypted_key = r.json()["result"]["key"]
+        self.tplink_cipher = self.decode_handshake_key(encrypted_key)
 
         try:
             self.cookie = f"{self.cookie_name}={r.cookies[self.cookie_name]}"
 
         except Exception:
-            errorCode = r.json()["error_code"]
-            errorMessage = self.errorCodes[str(errorCode)]
-            raise Exception(f"Error Code: {errorCode}, {errorMessage}")
+            error_code = r.json()["error_code"]
+            error_message = self.error_codes[str(error_code)]
+            raise Exception(f"Error Code: {error_code}, {error_message}")
 
     def login(self):
         """Handle login with the device."""
-        URL = f"http://{self.ipAddress}/app"
-        Payload = {
+        url = f"http://{self.ip_address}/app"
+        payload = {
             "method": "login_device",
             "params": {
-                "username": self.encodedEmail,
-                "password": self.encodedPassword
+                "username": self.encoded_email,
+                "password": self.encoded_password
             },
             "requestTimeMils": int(round(time.time() * 1000)),
         }
@@ -161,98 +161,98 @@ class P100():
             "Cookie": self.cookie
         }
 
-        EncryptedPayload = self.tpLinkCipher.encrypt(json.dumps(Payload))
+        encrypted_payload = self.tplink_cipher.encrypt(json.dumps(payload))
 
-        SecurePassthroughPayload = {
+        secure_passthrough_payload = {
             "method": "securePassthrough",
             "params": {
-                "request": EncryptedPayload
+                "request": encrypted_payload
             }
         }
 
-        r = self.session.post(URL, json=SecurePassthroughPayload, headers=headers, timeout=2)
+        r = self.session.post(url, json=secure_passthrough_payload, headers=headers, timeout=2)
 
-        decryptedResponse = self.tpLinkCipher.decrypt(r.json()["result"]["response"])
+        decrypted_response = self.tplink_cipher.decrypt(r.json()["result"]["response"])
 
         try:
-            self.token = ast.literal_eval(decryptedResponse)["result"]["token"]
+            self.token = ast.literal_eval(decrypted_response)["result"]["token"]
         except Exception:
-            errorCode = ast.literal_eval(decryptedResponse)["error_code"]
-            errorMessage = self.errorCodes[str(errorCode)]
-            raise Exception(f"Error Code: {errorCode}, {errorMessage}")
+            error_code = ast.literal_eval(decrypted_response)["error_code"]
+            error_message = self.error_codes[str(error_code)]
+            raise Exception(f"Error Code: {error_code}, {error_message}")
 
-    def turnOn(self):
+    def turn_on(self):
         """Power on the device."""
-        URL = f"http://{self.ipAddress}/app?token={self.token}"
-        Payload = {
+        url = f"http://{self.ip_address}/app?token={self.token}"
+        payload = {
             "method": "set_device_info",
             "params": {
                 "device_on": True
             },
             "requestTimeMils": int(round(time.time() * 1000)),
-            "terminalUUID": self.terminalUUID
+            "terminalUUID": self.terminal_uuid
         }
 
         headers = {
             "Cookie": self.cookie
         }
 
-        EncryptedPayload = self.tpLinkCipher.encrypt(json.dumps(Payload))
+        encrypted_payload = self.tplink_cipher.encrypt(json.dumps(payload))
 
-        SecurePassthroughPayload = {
+        secure_passthrough_payload = {
             "method": "securePassthrough",
             "params": {
-                "request": EncryptedPayload
+                "request": encrypted_payload
             }
         }
 
-        r = self.session.post(URL, json=SecurePassthroughPayload, headers=headers, timeout=2)
+        r = self.session.post(url, json=secure_passthrough_payload, headers=headers, timeout=2)
 
-        decryptedResponse = self.tpLinkCipher.decrypt(r.json()["result"]["response"])
+        decrypted_response = self.tplink_cipher.decrypt(r.json()["result"]["response"])
 
-        if ast.literal_eval(decryptedResponse)["error_code"] != 0:
-            errorCode = ast.literal_eval(decryptedResponse)["error_code"]
-            errorMessage = self.errorCodes[str(errorCode)]
-            raise Exception(f"Error Code: {errorCode}, {errorMessage}")
+        if ast.literal_eval(decrypted_response)["error_code"] != 0:
+            error_code = ast.literal_eval(decrypted_response)["error_code"]
+            error_message = self.error_codes[str(error_code)]
+            raise Exception(f"Error Code: {error_code}, {error_message}")
 
-    def turnOff(self):
+    def turn_off(self):
         """Power off the device."""
-        URL = f"http://{self.ipAddress}/app?token={self.token}"
-        Payload = {
+        url = f"http://{self.ip_address}/app?token={self.token}"
+        payload = {
             "method": "set_device_info",
             "params": {
                 "device_on": False
             },
             "requestTimeMils": int(round(time.time() * 1000)),
-            "terminalUUID": self.terminalUUID
+            "terminalUUID": self.terminal_uuid
         }
 
         headers = {
             "Cookie": self.cookie
         }
 
-        EncryptedPayload = self.tpLinkCipher.encrypt(json.dumps(Payload))
+        encrypted_payload = self.tplink_cipher.encrypt(json.dumps(payload))
 
-        SecurePassthroughPayload = {
+        secure_passthrough_payload = {
             "method": "securePassthrough",
             "params": {
-                "request": EncryptedPayload
+                "request": encrypted_payload
             }
         }
 
-        r = self.session.post(URL, json=SecurePassthroughPayload, headers=headers, timeout=2)
+        r = self.session.post(url, json=secure_passthrough_payload, headers=headers, timeout=2)
 
-        decryptedResponse = self.tpLinkCipher.decrypt(r.json()["result"]["response"])
+        decrypted_response = self.tplink_cipher.decrypt(r.json()["result"]["response"])
 
-        if ast.literal_eval(decryptedResponse)["error_code"] != 0:
-            errorCode = ast.literal_eval(decryptedResponse)["error_code"]
-            errorMessage = self.errorCodes[str(errorCode)]
-            raise Exception(f"Error Code: {errorCode}, {errorMessage}")
+        if ast.literal_eval(decrypted_response)["error_code"] != 0:
+            error_code = ast.literal_eval(decrypted_response)["error_code"]
+            error_message = self.error_codes[str(error_code)]
+            raise Exception(f"Error Code: {error_code}, {error_message}")
 
-    def getDeviceInfo(self):
+    def get_device_info(self):
         """Retrieve current settings from the device."""
-        URL = f"http://{self.ipAddress}/app?token={self.token}"
-        Payload = {
+        url = f"http://{self.ip_address}/app?token={self.token}"
+        payload = {
             "method": "get_device_info",
             "requestTimeMils": int(round(time.time() * 1000)),
         }
@@ -261,39 +261,39 @@ class P100():
             "Cookie": self.cookie
         }
 
-        EncryptedPayload = self.tpLinkCipher.encrypt(json.dumps(Payload))
+        encrypted_payload = self.tplink_cipher.encrypt(json.dumps(payload))
 
-        SecurePassthroughPayload = {
+        secure_passthrough_payload = {
             "method": "securePassthrough",
             "params": {
-                "request": EncryptedPayload
+                "request": encrypted_payload
             }
         }
 
-        r = self.session.post(URL, json=SecurePassthroughPayload, headers=headers)
-        decryptedResponse = self.tpLinkCipher.decrypt(r.json()["result"]["response"])
+        r = self.session.post(url, json=secure_passthrough_payload, headers=headers)
+        decrypted_response = self.tplink_cipher.decrypt(r.json()["result"]["response"])
 
-        return json.loads(decryptedResponse)
+        return json.loads(decrypted_response)
 
-    def getDeviceName(self):
+    def get_device_name(self):
         """Get the device name."""
         self.handshake()
         self.login()
-        data = self.getDeviceInfo()
+        data = self.get_device_info()
 
         if data["error_code"] != 0:
-            errorCode = ast.literal_eval(decryptedResponse)["error_code"]
-            errorMessage = self.errorCodes[str(errorCode)]
-            raise Exception(f"Error Code: {errorCode}, {errorMessage}")
+            error_code = ast.literal_eval(decrypted_response)["error_code"]
+            error_message = self.error_codes[str(error_code)]
+            raise Exception(f"Error Code: {error_code}, {error_message}")
         else:
-            encodedName = data["result"]["nickname"]
-            name = b64decode(encodedName)
+            encoded_name = data["result"]["nickname"]
+            name = b64decode(encoded_name)
             return name.decode("utf-8")
 
-    def turnOnWithDelay(self, delay):
+    def turn_on_with_delay(self, delay):
         """Switch on the device with a time delay."""
-        URL = f"http://{self.ipAddress}/app?token={self.token}"
-        Payload = {
+        url = f"http://{self.ip_address}/app?token={self.token}"
+        payload = {
             "method": "add_countdown_rule",
             "params": {
                 "delay": int(delay),
@@ -303,35 +303,35 @@ class P100():
                 "enable": True,
                 "remain": int(delay)
             },
-            "terminalUUID": self.terminalUUID
+            "terminalUUID": self.terminal_uuid
         }
 
         headers = {
             "Cookie": self.cookie
         }
 
-        EncryptedPayload = self.tpLinkCipher.encrypt(json.dumps(Payload))
+        encrypted_payload = self.tplink_cipher.encrypt(json.dumps(payload))
 
-        SecurePassthroughPayload = {
+        secure_passthrough_payload = {
             "method": "securePassthrough",
             "params": {
-                "request": EncryptedPayload
+                "request": encrypted_payload
             }
         }
 
-        r = self.session.post(URL, json=SecurePassthroughPayload, headers=headers)
+        r = self.session.post(url, json=secure_passthrough_payload, headers=headers)
 
-        decryptedResponse = self.tpLinkCipher.decrypt(r.json()["result"]["response"])
+        decrypted_response = self.tplink_cipher.decrypt(r.json()["result"]["response"])
 
-        if ast.literal_eval(decryptedResponse)["error_code"] != 0:
-            errorCode = ast.literal_eval(decryptedResponse)["error_code"]
-            errorMessage = self.errorCodes[str(errorCode)]
-            raise Exception(f"Error Code: {errorCode}, {errorMessage}")
+        if ast.literal_eval(decrypted_response)["error_code"] != 0:
+            error_code = ast.literal_eval(decrypted_response)["error_code"]
+            error_message = self.error_codes[str(error_code)]
+            raise Exception(f"Error Code: {error_code}, {error_message}")
 
-    def turnOffWithDelay(self, delay):
+    def turn_off_with_delay(self, delay):
         """Switch off the device with a time delay."""
-        URL = f"http://{self.ipAddress}/app?token={self.token}"
-        Payload = {
+        url = f"http://{self.ip_address}/app?token={self.token}"
+        payload = {
             "method": "add_countdown_rule",
             "params": {
                 "delay": int(delay),
@@ -341,27 +341,27 @@ class P100():
                 "enable": True,
                 "remain": int(delay)
             },
-            "terminalUUID": self.terminalUUID
+            "terminalUUID": self.terminal_uuid
         }
 
         headers = {
             "Cookie": self.cookie
         }
 
-        EncryptedPayload = self.tpLinkCipher.encrypt(json.dumps(Payload))
+        encrypted_payload = self.tplink_cipher.encrypt(json.dumps(payload))
 
-        SecurePassthroughPayload = {
+        secure_passthrough_payload = {
             "method": "securePassthrough",
             "params": {
-                "request": EncryptedPayload
+                "request": encrypted_payload
             }
         }
 
-        r = self.session.post(URL, json=SecurePassthroughPayload, headers=headers)
+        r = self.session.post(url, json=secure_passthrough_payload, headers=headers)
 
-        decryptedResponse = self.tpLinkCipher.decrypt(r.json()["result"]["response"])
+        decrypted_response = self.tplink_cipher.decrypt(r.json()["result"]["response"])
 
-        if ast.literal_eval(decryptedResponse)["error_code"] != 0:
-            errorCode = ast.literal_eval(decryptedResponse)["error_code"]
-            errorMessage = self.errorCodes[str(errorCode)]
-            raise Exception(f"Error Code: {errorCode}, {errorMessage}")
+        if ast.literal_eval(decrypted_response)["error_code"] != 0:
+            error_code = ast.literal_eval(decrypted_response)["error_code"]
+            error_message = self.error_codes[str(error_code)]
+            raise Exception(f"Error Code: {error_code}, {error_message}")

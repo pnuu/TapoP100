@@ -12,10 +12,10 @@ _LOGGER = logging.getLogger(__name__)
 class P110(PyP100.P100):
     """Control Tapo P110 sockets."""
 
-    def getEnergyUsage(self):
+    def get_energy_usage(self):
         """Get the energy usage from the device."""
-        URL = f"http://{self.ipAddress}/app?token={self.token}"
-        Payload = {
+        URL = f"http://{self.ip_address}/app?token={self.token}"
+        payload = {
             "method": "get_energy_usage",
             "requestTimeMils": int(round(time.time() * 1000)),
         }
@@ -24,17 +24,17 @@ class P110(PyP100.P100):
             "Cookie": self.cookie
         }
 
-        EncryptedPayload = self.tpLinkCipher.encrypt(json.dumps(Payload))
+        encrypted_payload = self.tplink_cipher.encrypt(json.dumps(payload))
 
-        SecurePassthroughPayload = {
+        secure_passthrough_payload = {
             "method": "securePassthrough",
             "params": {
-                "request": EncryptedPayload
+                "request": encrypted_payload
             }
         }
         _LOGGER.debug("getEnergyUsage %s", self.ipAddress)
-        r = self.session.post(URL, json=SecurePassthroughPayload, headers=headers, timeout=2)
+        r = self.session.post(URL, json=secure_passthrough_payload, headers=headers, timeout=2)
 
-        decryptedResponse = self.tpLinkCipher.decrypt(r.json()["result"]["response"])
+        decrypted_response = self.tplink_cipher.decrypt(r.json()["result"]["response"])
 
-        return json.loads(decryptedResponse)
+        return json.loads(decrypted_response)

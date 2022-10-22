@@ -18,33 +18,6 @@ import uuid
 LOGGER = logging.getLogger(__name__)
 
 
-# Old Functions to get device list from tplinkcloud
-def get_token(email, password):
-    """Get login token."""
-    url = "https://eu-wap.tplinkcloud.com"
-    payload = {
-        "method": "login",
-        "params": {
-            "appType": "Tapo_Ios",
-            "cloudUserName": email,
-            "cloudPassword": password,
-            "terminalUUID": "0A950402-7224-46EB-A450-7362CDB902A2"
-        }
-    }
-
-    return requests.post(url, json=payload).json()['result']['token']
-
-
-def get_device_list(email, password):
-    """Get list of devices from TP-Link cloud."""
-    url = "https://eu-wap.tplinkcloud.com?token=" + get_token(email, password)
-    payload = {
-        "method": "getDeviceList",
-    }
-
-    return requests.post(url, json=payload).json()
-
-
 ERROR_CODES = {
     "0": "Success",
     "-1010": "Invalid Public Key Length",

@@ -27,8 +27,8 @@ class P110(PyP100.P100):
         EncryptedPayload = self.tpLinkCipher.encrypt(json.dumps(Payload))
 
         SecurePassthroughPayload = {
-            "method":"securePassthrough",
-            "params":{
+            "method": "securePassthrough",
+            "params": {
                 "request": EncryptedPayload
             }
         }

@@ -3,20 +3,18 @@
 import requests
 from requests import Session
 
-from base64 import b64encode, b64decode
+from base64 import b64decode
 import hashlib
 from Crypto.PublicKey import RSA
 import time
 import json
-from Crypto.Cipher import AES, PKCS1_OAEP, PKCS1_v1_5
+from Crypto.Cipher import PKCS1_v1_5
 from . import tp_link_cipher
 import ast
-import pkgutil
 import uuid
-import json
 
 
-#Old Functions to get device list from tplinkcloud
+# Old Functions to get device list from tplinkcloud
 def getToken(email, password):
     """Get login token."""
     URL = "https://eu-wap.tplinkcloud.com"
@@ -56,7 +54,7 @@ ERROR_CODES = {
 class P100():
     """Control Tapo P100 sockets."""
 
-    def __init__ (self, ipAddress, email, password):
+    def __init__(self, ipAddress, email, password):
         """Initialize the class."""
         self.ipAddress = ipAddress
         self.terminalUUID = str(uuid.uuid4())
@@ -76,7 +74,7 @@ class P100():
         # Password Encoding
         self.encodedPassword = tp_link_cipher.TpLinkCipher.mime_encoder(password.encode("utf-8"))
 
-        #Email Encoding
+        # Email Encoding
         self.encodedEmail = self.sha_digest_username(email)
         self.encodedEmail = tp_link_cipher.TpLinkCipher.mime_encoder(self.encodedEmail.encode("utf-8"))
 
@@ -85,7 +83,7 @@ class P100():
         self.keys = RSA.generate(1024)
 
         self.privateKey = self.keys.exportKey("PEM")
-        self.publicKey  = self.keys.publickey().exportKey("PEM")
+        self.publicKey = self.keys.publickey().exportKey("PEM")
 
     def decode_handshake_key(self, key):
         """Decode handshake."""
@@ -97,8 +95,8 @@ class P100():
         if do_final is None:
             raise ValueError("Decryption failed!")
 
-        b_arr:bytearray = bytearray()
-        b_arr2:bytearray = bytearray()
+        b_arr: bytearray = bytearray()
+        b_arr2: bytearray = bytearray()
 
         for i in range(0, 16):
             b_arr.insert(i, do_final[i])
@@ -128,8 +126,8 @@ class P100():
         """Handle handshake with the device."""
         URL = f"http://{self.ipAddress}/app"
         Payload = {
-            "method":"handshake",
-            "params":{
+            "method": "handshake",
+            "params": {
                 "key": self.publicKey.decode("utf-8"),
                 "requestTimeMils": int(round(time.time() * 1000))
             }
@@ -143,7 +141,7 @@ class P100():
         try:
             self.cookie = f"{self.cookie_name}={r.cookies[self.cookie_name]}"
 
-        except:
+        except Exception:
             errorCode = r.json()["error_code"]
             errorMessage = self.errorCodes[str(errorCode)]
             raise Exception(f"Error Code: {errorCode}, {errorMessage}")
@@ -152,8 +150,8 @@ class P100():
         """Handle login with the device."""
         URL = f"http://{self.ipAddress}/app"
         Payload = {
-            "method":"login_device",
-            "params":{
+            "method": "login_device",
+            "params": {
                 "username": self.encodedEmail,
                 "password": self.encodedPassword
             },
@@ -166,8 +164,8 @@ class P100():
         EncryptedPayload = self.tpLinkCipher.encrypt(json.dumps(Payload))
 
         SecurePassthroughPayload = {
-            "method":"securePassthrough",
-            "params":{
+            "method": "securePassthrough",
+            "params": {
                 "request": EncryptedPayload
             }
         }
@@ -178,7 +176,7 @@ class P100():
 
         try:
             self.token = ast.literal_eval(decryptedResponse)["result"]["token"]
-        except:
+        except Exception:
             errorCode = ast.literal_eval(decryptedResponse)["error_code"]
             errorMessage = self.errorCodes[str(errorCode)]
             raise Exception(f"Error Code: {errorCode}, {errorMessage}")
@@ -188,7 +186,7 @@ class P100():
         URL = f"http://{self.ipAddress}/app?token={self.token}"
         Payload = {
             "method": "set_device_info",
-            "params":{
+            "params": {
                 "device_on": True
             },
             "requestTimeMils": int(round(time.time() * 1000)),
@@ -222,7 +220,7 @@ class P100():
         URL = f"http://{self.ipAddress}/app?token={self.token}"
         Payload = {
             "method": "set_device_info",
-            "params":{
+            "params": {
                 "device_on": False
             },
             "requestTimeMils": int(round(time.time() * 1000)),
@@ -237,7 +235,7 @@ class P100():
 
         SecurePassthroughPayload = {
             "method": "securePassthrough",
-            "params":{
+            "params": {
                 "request": EncryptedPayload
             }
         }
@@ -266,8 +264,8 @@ class P100():
         EncryptedPayload = self.tpLinkCipher.encrypt(json.dumps(Payload))
 
         SecurePassthroughPayload = {
-            "method":"securePassthrough",
-            "params":{
+            "method": "securePassthrough",
+            "params": {
                 "request": EncryptedPayload
             }
         }

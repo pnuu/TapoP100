@@ -22,7 +22,7 @@ class L530(PyP100.P100):
         URL = f"http://{self.ipAddress}/app?token={self.token}"
         Payload = {
             "method": "set_device_info",
-            "params":{
+            "params": {
                 "brightness": brightness
             },
             "requestTimeMils": int(round(time.time() * 1000)),
@@ -36,7 +36,7 @@ class L530(PyP100.P100):
 
         SecurePassthroughPayload = {
             "method": "securePassthrough",
-            "params":{
+            "params": {
                 "request": EncryptedPayload
             }
         }
@@ -52,14 +52,14 @@ class L530(PyP100.P100):
 
     def setColorTemp(self, colortemp):
         """Set color temperature of white light.
-        
+
         Valid range is from 2500 K to 6500 K.
         """
         self.turnOn()
         URL = f"http://{self.ipAddress}/app?token={self.token}"
         Payload = {
             "method": "set_device_info",
-            "params":{
+            "params": {
                 "color_temp": colortemp
             },
             "requestTimeMils": int(round(time.time() * 1000)),
@@ -73,7 +73,7 @@ class L530(PyP100.P100):
 
         SecurePassthroughPayload = {
             "method": "securePassthrough",
-            "params":{
+            "params": {
                 "request": EncryptedPayload
             }
         }
@@ -85,10 +85,11 @@ class L530(PyP100.P100):
         if ast.literal_eval(decryptedResponse)["error_code"] != 0:
             errorCode = ast.literal_eval(decryptedResponse)["error_code"]
             errorMessage = self.errorCodes[str(errorCode)]
+            print(errorMessage)
 
     def setColor(self, hue, saturation):
         """Set color by adjusting hue and saturation.
-        
+
         Valid range for both is from 0 to 100.
         """
         self.setColorTemp(0)
@@ -96,7 +97,7 @@ class L530(PyP100.P100):
         URL = f"http://{self.ipAddress}/app?token={self.token}"
         Payload = {
             "method": "set_device_info",
-            "params":{
+            "params": {
                 "hue": hue,
                 "saturation": saturation
             },
@@ -111,7 +112,7 @@ class L530(PyP100.P100):
 
         SecurePassthroughPayload = {
             "method": "securePassthrough",
-            "params":{
+            "params": {
                 "request": EncryptedPayload
             }
         }
@@ -123,3 +124,4 @@ class L530(PyP100.P100):
         if ast.literal_eval(decryptedResponse)["error_code"] != 0:
             errorCode = ast.literal_eval(decryptedResponse)["error_code"]
             errorMessage = self.errorCodes[str(errorCode)]
+            print(errorMessage)

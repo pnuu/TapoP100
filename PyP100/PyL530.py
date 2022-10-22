@@ -19,7 +19,7 @@ class L530(PyP100.P100):
         Valid range is integers from 1 to 100.
         """
         self.turn_on()
-        url = f"http://{self.ip_address}/app?token={self.token}"
+        url = f"http://{self.ip_address}/app?token={self._token}"
         payload = {
             "method": "set_device_info",
             "params": {
@@ -29,10 +29,10 @@ class L530(PyP100.P100):
         }
 
         headers = {
-            "Cookie": self.cookie
+            "Cookie": self._cookie
         }
 
-        encrypted_payload = self.tplink_cipher.encrypt(json.dumps(payload))
+        encrypted_payload = self._tplink_cipher.encrypt(json.dumps(payload))
 
         secure_passthrough_payload = {
             "method": "securePassthrough",
@@ -41,13 +41,13 @@ class L530(PyP100.P100):
             }
         }
 
-        r = self.session.post(url, json=secure_passthrough_payload, headers=headers, timeout=2)
+        r = self._session.post(url, json=secure_passthrough_payload, headers=headers, timeout=2)
 
-        decrypted_response = self.tplink_cipher.decrypt(r.json()["result"]["response"])
+        decrypted_response = self._tplink_cipher.decrypt(r.json()["result"]["response"])
 
         if ast.literal_eval(decrypted_response)["error_code"] != 0:
             error_code = ast.literal_eval(decrypted_response)["error_code"]
-            error_message = self.error_codes[str(error_code)]
+            error_message = self._error_codes[str(error_code)]
             raise Exception(f"Error Code: {error_code}, {error_message}")
 
     def set_color_temperature(self, colortemp):
@@ -56,7 +56,7 @@ class L530(PyP100.P100):
         Valid range is from 2500 K to 6500 K.
         """
         self.turn_on()
-        url = f"http://{self.ip_address}/app?token={self.token}"
+        url = f"http://{self.ip_address}/app?token={self._token}"
         payload = {
             "method": "set_device_info",
             "params": {
@@ -66,10 +66,10 @@ class L530(PyP100.P100):
         }
 
         headers = {
-            "Cookie": self.cookie
+            "Cookie": self._cookie
         }
 
-        encrypted_payload = self.tplink_cipher.encrypt(json.dumps(payload))
+        encrypted_payload = self._tplink_cipher.encrypt(json.dumps(payload))
 
         secure_passthrough_payload = {
             "method": "securePassthrough",
@@ -78,13 +78,13 @@ class L530(PyP100.P100):
             }
         }
 
-        r = self.session.post(url, json=secure_passthrough_payload, headers=headers, timeout=2)
+        r = self._session.post(url, json=secure_passthrough_payload, headers=headers, timeout=2)
 
-        decrypted_response = self.tplink_cipher.decrypt(r.json()["result"]["response"])
+        decrypted_response = self._tplink_cipher.decrypt(r.json()["result"]["response"])
 
         if ast.literal_eval(decrypted_response)["error_code"] != 0:
             error_code = ast.literal_eval(decrypted_response)["error_code"]
-            error_message = self.error_codes[str(error_code)]
+            error_message = self._error_codes[str(error_code)]
             print(error_message)
 
     def set_hue_saturation(self, hue, saturation):
@@ -94,7 +94,7 @@ class L530(PyP100.P100):
         """
         self.set_color_temperature(0)
         self.turn_on()
-        url = f"http://{self.ip_address}/app?token={self.token}"
+        url = f"http://{self.ip_address}/app?token={self._token}"
         payload = {
             "method": "set_device_info",
             "params": {
@@ -105,10 +105,10 @@ class L530(PyP100.P100):
         }
 
         headers = {
-            "Cookie": self.cookie
+            "Cookie": self._cookie
         }
 
-        encrypted_payload = self.tplink_cipher.encrypt(json.dumps(payload))
+        encrypted_payload = self._tplink_cipher.encrypt(json.dumps(payload))
 
         secure_passthrough_payload = {
             "method": "securePassthrough",
@@ -117,11 +117,11 @@ class L530(PyP100.P100):
             }
         }
 
-        r = self.session.post(url, json=secure_passthrough_payload, headers=headers, timeout=2)
+        r = self._session.post(url, json=secure_passthrough_payload, headers=headers, timeout=2)
 
-        decrypted_response = self.tplink_cipher.decrypt(r.json()["result"]["response"])
+        decrypted_response = self._tplink_cipher.decrypt(r.json()["result"]["response"])
 
         if ast.literal_eval(decrypted_response)["error_code"] != 0:
             error_code = ast.literal_eval(decrypted_response)["error_code"]
-            error_message = self.error_codes[str(error_code)]
+            error_message = self._error_codes[str(error_code)]
             print(error_message)

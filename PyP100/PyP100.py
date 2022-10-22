@@ -70,29 +70,29 @@ class P100():
         self._private_key = None
         self._public_key = None
         self._headers = None
+        self._token = None
         self._tplink_cipher = None
         self._error_codes = ERROR_CODES
 
-        self.encrypt_credentials(email, password)
-        self.create_key_pair()
+        self._encrypt_credentials(email, password)
+        self._create_key_pair()
+        self._handshake()
+        self._login()
 
-    def encrypt_credentials(self, email, password):
+    def _encrypt_credentials(self, email, password):
         """Encrypt credentials."""
-        # Password Encoding
         self._password = tp_link_cipher.TpLinkCipher.mime_encoder(password.encode("utf-8"))
-
-        # Email Encoding
         encoded_email = sha_digest(email)
         self._email = tp_link_cipher.TpLinkCipher.mime_encoder(encoded_email.encode("utf-8"))
 
-    def create_key_pair(self):
+    def _create_key_pair(self):
         """Create private and public keys."""
         keys = RSA.generate(1024)
 
         self._private_key = keys.exportKey("PEM")
         self._public_key = keys.public_key().exportKey("PEM")
 
-    def decode_handshake_key(self, key):
+    def _decode_handshake_key(self, key):
         """Decode handshake."""
         decode: bytes = b64decode(key.encode("UTF-8"))
         decode2: bytes = self._private_key
@@ -112,7 +112,7 @@ class P100():
 
         return tp_link_cipher.TpLinkCipher(b_arr, b_arr2)
 
-    def handshake(self):
+    def _handshake(self):
         """Handle handshake with the device."""
         url = f"http://{self.ip_address}/app"
         payload = self._get_handshake_payload()
@@ -120,7 +120,7 @@ class P100():
         r = self._session.post(url, json=payload, timeout=2)
 
         encrypted_key = r.json()["result"]["key"]
-        self._tplink_cipher = self.decode_handshake_key(encrypted_key)
+        self._tplink_cipher = self._decode_handshake_key(encrypted_key)
 
         try:
             self._headers = {
@@ -140,7 +140,7 @@ class P100():
             }
         }
 
-    def login(self):
+    def _login(self):
         """Handle login with the device."""
         url = f"http://{self.ip_address}/app"
         payload = self._get_secure_payload(
@@ -221,21 +221,16 @@ class P100():
             _get_device_info_payload()
         )
 
-        try:
-            response = self._get_response(url, payload)
-        finally:
-            self._log_errors(response)
+        response = self._get_response(url, payload)
 
         return json.loads(response)
 
     def get_device_name(self):
         """Get the device name."""
-        self.handshake()
-        self.login()
         data = self.get_device_info()
 
         if data["error_code"] != 0:
-            error_code = ast.literal_eval(response)["error_code"]
+            error_code = ast.literal_eval(data)["error_code"]
             error_message = self._error_codes[str(error_code)]
             raise Exception(f"Error Code: {error_code}, {error_message}")
         else:

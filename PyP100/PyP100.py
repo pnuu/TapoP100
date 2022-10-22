@@ -65,6 +65,7 @@ class P100():
         self._private_key = None
         self._public_key = None
         self._cookie = None
+        self._tplink_cipher = None
         self._error_codes = ERROR_CODES
 
         self.encrypt_credentials(email, password)

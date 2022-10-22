@@ -64,7 +64,7 @@ class P100():
         self._password = None
         self._private_key = None
         self._public_key = None
-        self._cookie = None
+        self._headers = None
         self._tplink_cipher = None
         self._error_codes = ERROR_CODES
 
@@ -124,7 +124,9 @@ class P100():
         self._tplink_cipher = self.decode_handshake_key(encrypted_key)
 
         try:
-            self._cookie = f"{COOKIE_NAME}={r.cookies[COOKIE_NAME]}"
+            self._headers = {
+                "Cookie": f"{COOKIE_NAME}={r.cookies[COOKIE_NAME]}"
+            }
 
         except Exception:
             error_code = r.json()["error_code"]
@@ -142,29 +144,26 @@ class P100():
             },
             "requestTimeMils": int(round(time.time() * 1000)),
         }
-        headers = {
-            "Cookie": self._cookie
-        }
 
-        encrypted_payload = self._tplink_cipher.encrypt(json.dumps(payload))
-
-        secure_passthrough_payload = {
+        payload = {
             "method": "securePassthrough",
             "params": {
-                "request": encrypted_payload
+                "request": self._tplink_cipher.encrypt(json.dumps(payload))
             }
         }
 
-        r = self._session.post(url, json=secure_passthrough_payload, headers=headers, timeout=2)
-
-        decrypted_response = self._tplink_cipher.decrypt(r.json()["result"]["response"])
+        response = self._get_response(url, payload)
 
         try:
-            self._token = ast.literal_eval(decrypted_response)["result"]["token"]
+            self._token = ast.literal_eval(response)["result"]["token"]
         except Exception:
-            error_code = ast.literal_eval(decrypted_response)["error_code"]
+            error_code = ast.literal_eval(response)["error_code"]
             error_message = self._error_codes[str(error_code)]
             raise Exception(f"Error Code: {error_code}, {error_message}")
+
+    def _get_response(self, url, payload):
+        response = self._session.post(url, json=payload, headers=self._headers, timeout=2)
+        return self._tplink_cipher.decrypt(response.json()["result"]["response"])
 
     def turn_on(self):
         """Power on the device."""
@@ -178,25 +177,17 @@ class P100():
             "terminalUUID": self._terminal_uuid
         }
 
-        headers = {
-            "Cookie": self._cookie
-        }
-
-        encrypted_payload = self._tplink_cipher.encrypt(json.dumps(payload))
-
-        secure_passthrough_payload = {
+        payload = {
             "method": "securePassthrough",
             "params": {
-                "request": encrypted_payload
+                "request": self._tplink_cipher.encrypt(json.dumps(payload))
             }
         }
 
-        r = self._session.post(url, json=secure_passthrough_payload, headers=headers, timeout=2)
+        response = self._get_response(url, payload)
 
-        decrypted_response = self._tplink_cipher.decrypt(r.json()["result"]["response"])
-
-        if ast.literal_eval(decrypted_response)["error_code"] != 0:
-            error_code = ast.literal_eval(decrypted_response)["error_code"]
+        if ast.literal_eval(response)["error_code"] != 0:
+            error_code = ast.literal_eval(response)["error_code"]
             error_message = self._error_codes[str(error_code)]
             raise Exception(f"Error Code: {error_code}, {error_message}")
 
@@ -212,25 +203,17 @@ class P100():
             "terminalUUID": self._terminal_uuid
         }
 
-        headers = {
-            "Cookie": self._cookie
-        }
-
-        encrypted_payload = self._tplink_cipher.encrypt(json.dumps(payload))
-
-        secure_passthrough_payload = {
+        payload = {
             "method": "securePassthrough",
             "params": {
-                "request": encrypted_payload
+                "request": self._tplink_cipher.encrypt(json.dumps(payload))
             }
         }
 
-        r = self._session.post(url, json=secure_passthrough_payload, headers=headers, timeout=2)
+        response = self._get_response(url, payload)
 
-        decrypted_response = self._tplink_cipher.decrypt(r.json()["result"]["response"])
-
-        if ast.literal_eval(decrypted_response)["error_code"] != 0:
-            error_code = ast.literal_eval(decrypted_response)["error_code"]
+        if ast.literal_eval(response)["error_code"] != 0:
+            error_code = ast.literal_eval(response)["error_code"]
             error_message = self._error_codes[str(error_code)]
             raise Exception(f"Error Code: {error_code}, {error_message}")
 
@@ -242,23 +225,16 @@ class P100():
             "requestTimeMils": int(round(time.time() * 1000)),
         }
 
-        headers = {
-            "Cookie": self._cookie
-        }
-
-        encrypted_payload = self._tplink_cipher.encrypt(json.dumps(payload))
-
-        secure_passthrough_payload = {
+        payload = {
             "method": "securePassthrough",
             "params": {
-                "request": encrypted_payload
+                "request": self._tplink_cipher.encrypt(json.dumps(payload))
             }
         }
 
-        r = self._session.post(url, json=secure_passthrough_payload, headers=headers)
-        decrypted_response = self._tplink_cipher.decrypt(r.json()["result"]["response"])
+        response = self._get_response(url, payload)
 
-        return json.loads(decrypted_response)
+        return json.loads(response)
 
     def get_device_name(self):
         """Get the device name."""
@@ -267,7 +243,7 @@ class P100():
         data = self.get_device_info()
 
         if data["error_code"] != 0:
-            error_code = ast.literal_eval(decrypted_response)["error_code"]
+            error_code = ast.literal_eval(response)["error_code"]
             error_message = self._error_codes[str(error_code)]
             raise Exception(f"Error Code: {error_code}, {error_message}")
         else:
@@ -291,25 +267,17 @@ class P100():
             "terminalUUID": self._terminal_uuid
         }
 
-        headers = {
-            "Cookie": self._cookie
-        }
-
-        encrypted_payload = self._tplink_cipher.encrypt(json.dumps(payload))
-
-        secure_passthrough_payload = {
+        payload = {
             "method": "securePassthrough",
             "params": {
-                "request": encrypted_payload
+                "request": self._tplink_cipher.encrypt(json.dumps(payload))
             }
         }
 
-        r = self._session.post(url, json=secure_passthrough_payload, headers=headers)
+        response = self._get_response(url, payload)
 
-        decrypted_response = self._tplink_cipher.decrypt(r.json()["result"]["response"])
-
-        if ast.literal_eval(decrypted_response)["error_code"] != 0:
-            error_code = ast.literal_eval(decrypted_response)["error_code"]
+        if ast.literal_eval(response)["error_code"] != 0:
+            error_code = ast.literal_eval(response)["error_code"]
             error_message = self._error_codes[str(error_code)]
             raise Exception(f"Error Code: {error_code}, {error_message}")
 
@@ -329,25 +297,17 @@ class P100():
             "terminalUUID": self._terminal_uuid
         }
 
-        headers = {
-            "Cookie": self._cookie
-        }
-
-        encrypted_payload = self._tplink_cipher.encrypt(json.dumps(payload))
-
-        secure_passthrough_payload = {
+        payload = {
             "method": "securePassthrough",
             "params": {
-                "request": encrypted_payload
+                "request": self._tplink_cipher.encrypt(json.dumps(payload))
             }
         }
 
-        r = self._session.post(url, json=secure_passthrough_payload, headers=headers)
+        response = self._get_response(url, payload)
 
-        decrypted_response = self._tplink_cipher.decrypt(r.json()["result"]["response"])
-
-        if ast.literal_eval(decrypted_response)["error_code"] != 0:
-            error_code = ast.literal_eval(decrypted_response)["error_code"]
+        if ast.literal_eval(response)["error_code"] != 0:
+            error_code = ast.literal_eval(response)["error_code"]
             error_message = self._error_codes[str(error_code)]
             raise Exception(f"Error Code: {error_code}, {error_message}")
 

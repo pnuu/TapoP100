@@ -14,27 +14,19 @@ class P110(PyP100.P100):
 
     def get_energy_usage(self):
         """Get the energy usage from the device."""
-        URL = f"http://{self.ip_address}/app?token={self._token}"
+        url = f"http://{self.ip_address}/app?token={self._token}"
         payload = {
             "method": "get_energy_usage",
             "requestTimeMils": int(round(time.time() * 1000)),
         }
-
-        headers = {
-            "Cookie": self._cookie
-        }
-
-        encrypted_payload = self._tplink_cipher.encrypt(json.dumps(payload))
-
-        secure_passthrough_payload = {
+        payload = {
             "method": "securePassthrough",
             "params": {
-                "request": encrypted_payload
+                "request": self._tplink_cipher.encrypt(json.dumps(payload))
             }
         }
         _LOGGER.debug("getEnergyUsage %s", self.ip_address)
-        r = self._session.post(URL, json=secure_passthrough_payload, headers=headers, timeout=2)
 
-        decrypted_response = self._tplink_cipher.decrypt(r.json()["result"]["response"])
+        response = self._get_response(url, payload)
 
-        return json.loads(decrypted_response)
+        return json.loads(response)

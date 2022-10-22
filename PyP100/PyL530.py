@@ -28,25 +28,17 @@ class L530(PyP100.P100):
             "requestTimeMils": int(round(time.time() * 1000)),
         }
 
-        headers = {
-            "Cookie": self._cookie
-        }
-
-        encrypted_payload = self._tplink_cipher.encrypt(json.dumps(payload))
-
-        secure_passthrough_payload = {
+        payload = {
             "method": "securePassthrough",
             "params": {
-                "request": encrypted_payload
+                "request": self._tplink_cipher.encrypt(json.dumps(payload))
             }
         }
 
-        r = self._session.post(url, json=secure_passthrough_payload, headers=headers, timeout=2)
+        response = self._get_response(url, payload)
 
-        decrypted_response = self._tplink_cipher.decrypt(r.json()["result"]["response"])
-
-        if ast.literal_eval(decrypted_response)["error_code"] != 0:
-            error_code = ast.literal_eval(decrypted_response)["error_code"]
+        if ast.literal_eval(response)["error_code"] != 0:
+            error_code = ast.literal_eval(response)["error_code"]
             error_message = self._error_codes[str(error_code)]
             raise Exception(f"Error Code: {error_code}, {error_message}")
 
@@ -64,26 +56,17 @@ class L530(PyP100.P100):
             },
             "requestTimeMils": int(round(time.time() * 1000)),
         }
-
-        headers = {
-            "Cookie": self._cookie
-        }
-
-        encrypted_payload = self._tplink_cipher.encrypt(json.dumps(payload))
-
-        secure_passthrough_payload = {
+        payload = {
             "method": "securePassthrough",
             "params": {
-                "request": encrypted_payload
+                "request": self._tplink_cipher.encrypt(json.dumps(payload))
             }
         }
 
-        r = self._session.post(url, json=secure_passthrough_payload, headers=headers, timeout=2)
+        response = self._get_response(url, payload)
 
-        decrypted_response = self._tplink_cipher.decrypt(r.json()["result"]["response"])
-
-        if ast.literal_eval(decrypted_response)["error_code"] != 0:
-            error_code = ast.literal_eval(decrypted_response)["error_code"]
+        if ast.literal_eval(response)["error_code"] != 0:
+            error_code = ast.literal_eval(response)["error_code"]
             error_message = self._error_codes[str(error_code)]
             print(error_message)
 
@@ -104,24 +87,16 @@ class L530(PyP100.P100):
             "requestTimeMils": int(round(time.time() * 1000)),
         }
 
-        headers = {
-            "Cookie": self._cookie
-        }
-
-        encrypted_payload = self._tplink_cipher.encrypt(json.dumps(payload))
-
-        secure_passthrough_payload = {
+        payload = {
             "method": "securePassthrough",
             "params": {
-                "request": encrypted_payload
+                "request": self._tplink_cipher.encrypt(json.dumps(payload))
             }
         }
 
-        r = self._session.post(url, json=secure_passthrough_payload, headers=headers, timeout=2)
+        response = self._get_response(url, payload)
 
-        decrypted_response = self._tplink_cipher.decrypt(r.json()["result"]["response"])
-
-        if ast.literal_eval(decrypted_response)["error_code"] != 0:
-            error_code = ast.literal_eval(decrypted_response)["error_code"]
+        if ast.literal_eval(response)["error_code"] != 0:
+            error_code = ast.literal_eval(response)["error_code"]
             error_message = self._error_codes[str(error_code)]
             print(error_message)

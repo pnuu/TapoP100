@@ -20,20 +20,9 @@ class L530(PyP100.P100):
         """
         self.turn_on()
         url = f"http://{self.ip_address}/app?token={self._token}"
-        payload = {
-            "method": "set_device_info",
-            "params": {
-                "brightness": brightness
-            },
-            "requestTimeMils": int(round(time.time() * 1000)),
-        }
-
-        payload = {
-            "method": "securePassthrough",
-            "params": {
-                "request": self._tplink_cipher.encrypt(json.dumps(payload))
-            }
-        }
+        payload = self._get_secure_payload(
+            self._get_set_device_info_payload(params={"brightness": brightness})
+        )
 
         response = self._get_response(url, payload)
 
@@ -49,19 +38,9 @@ class L530(PyP100.P100):
         """
         self.turn_on()
         url = f"http://{self.ip_address}/app?token={self._token}"
-        payload = {
-            "method": "set_device_info",
-            "params": {
-                "color_temp": colortemp
-            },
-            "requestTimeMils": int(round(time.time() * 1000)),
-        }
-        payload = {
-            "method": "securePassthrough",
-            "params": {
-                "request": self._tplink_cipher.encrypt(json.dumps(payload))
-            }
-        }
+        payload = self._get_secure_payload(
+            self._get_set_device_info_payload(params={"color_temp": colortemp})
+        )
 
         response = self._get_response(url, payload)
 
@@ -78,21 +57,9 @@ class L530(PyP100.P100):
         self.set_color_temperature(0)
         self.turn_on()
         url = f"http://{self.ip_address}/app?token={self._token}"
-        payload = {
-            "method": "set_device_info",
-            "params": {
-                "hue": hue,
-                "saturation": saturation
-            },
-            "requestTimeMils": int(round(time.time() * 1000)),
-        }
-
-        payload = {
-            "method": "securePassthrough",
-            "params": {
-                "request": self._tplink_cipher.encrypt(json.dumps(payload))
-            }
-        }
+        payload = self._get_secure_payload(
+            self._get_set_device_info_payload(params={"hue": hue, "saturation": saturation})
+        )
 
         response = self._get_response(url, payload)
 

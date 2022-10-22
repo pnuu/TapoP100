@@ -110,13 +110,7 @@ class P100():
     def handshake(self):
         """Handle handshake with the device."""
         url = f"http://{self.ip_address}/app"
-        payload = {
-            "method": "handshake",
-            "params": {
-                "key": self._public_key.decode("utf-8"),
-                "requestTimeMils": int(round(time.time() * 1000))
-            }
-        }
+        payload = self._get_handshake_payload()
 
         r = self._session.post(url, json=payload, timeout=2)
 
@@ -133,25 +127,21 @@ class P100():
             error_message = self._error_codes[str(error_code)]
             raise Exception(f"Error Code: {error_code}, {error_message}")
 
-    def login(self):
-        """Handle login with the device."""
-        url = f"http://{self.ip_address}/app"
-        payload = {
-            "method": "login_device",
+    def _get_handshake_payload(self):
+        return {
+            "method": "handshake",
             "params": {
-                "username": self._email,
-                "password": self._password
-            },
-            "requestTimeMils": int(round(time.time() * 1000)),
-        }
-
-        payload = {
-            "method": "securePassthrough",
-            "params": {
-                "request": self._tplink_cipher.encrypt(json.dumps(payload))
+                "key": self._public_key.decode("utf-8"),
+                "requestTimeMils": int(round(time.time() * 1000))
             }
         }
 
+    def login(self):
+        """Handle login with the device."""
+        url = f"http://{self.ip_address}/app"
+        payload = self._get_secure_payload(
+            self._get_login_payload()
+        )
         response = self._get_response(url, payload)
 
         try:
@@ -161,6 +151,24 @@ class P100():
             error_message = self._error_codes[str(error_code)]
             raise Exception(f"Error Code: {error_code}, {error_message}")
 
+    def _get_secure_payload(self, payload):
+        return {
+            "method": "securePassthrough",
+            "params": {
+                "request": self._tplink_cipher.encrypt(json.dumps(payload))
+            }
+        }
+
+    def _get_login_payload(self):
+        return {
+            "method": "login_device",
+            "params": {
+                "username": self._email,
+                "password": self._password
+            },
+            "requestTimeMils": int(round(time.time() * 1000)),
+        }
+
     def _get_response(self, url, payload):
         response = self._session.post(url, json=payload, headers=self._headers, timeout=2)
         return self._tplink_cipher.decrypt(response.json()["result"]["response"])
@@ -168,21 +176,9 @@ class P100():
     def turn_on(self):
         """Power on the device."""
         url = f"http://{self.ip_address}/app?token={self._token}"
-        payload = {
-            "method": "set_device_info",
-            "params": {
-                "device_on": True
-            },
-            "requestTimeMils": int(round(time.time() * 1000)),
-            "terminalUUID": self._terminal_uuid
-        }
-
-        payload = {
-            "method": "securePassthrough",
-            "params": {
-                "request": self._tplink_cipher.encrypt(json.dumps(payload))
-            }
-        }
+        payload = self._get_secure_payload(
+            self._get_set_device_info_payload(params={"device_on": True})
+        )
 
         response = self._get_response(url, payload)
 
@@ -191,24 +187,20 @@ class P100():
             error_message = self._error_codes[str(error_code)]
             raise Exception(f"Error Code: {error_code}, {error_message}")
 
-    def turn_off(self):
-        """Power off the device."""
-        url = f"http://{self.ip_address}/app?token={self._token}"
-        payload = {
+    def _get_set_device_info_payload(self, params=None):
+        return {
             "method": "set_device_info",
-            "params": {
-                "device_on": False
-            },
+            "params": params,
             "requestTimeMils": int(round(time.time() * 1000)),
             "terminalUUID": self._terminal_uuid
         }
 
-        payload = {
-            "method": "securePassthrough",
-            "params": {
-                "request": self._tplink_cipher.encrypt(json.dumps(payload))
-            }
-        }
+    def turn_off(self):
+        """Power off the device."""
+        url = f"http://{self.ip_address}/app?token={self._token}"
+        payload = self._get_secure_payload(
+            self._get_set_device_info_payload(params={"device_on": False})
+        )
 
         response = self._get_response(url, payload)
 
@@ -220,17 +212,9 @@ class P100():
     def get_device_info(self):
         """Retrieve current settings from the device."""
         url = f"http://{self.ip_address}/app?token={self._token}"
-        payload = {
-            "method": "get_device_info",
-            "requestTimeMils": int(round(time.time() * 1000)),
-        }
-
-        payload = {
-            "method": "securePassthrough",
-            "params": {
-                "request": self._tplink_cipher.encrypt(json.dumps(payload))
-            }
-        }
+        payload = self._get_secure_payload(
+            _get_device_info_payload()
+        )
 
         response = self._get_response(url, payload)
 
@@ -254,25 +238,9 @@ class P100():
     def turn_on_with_delay(self, delay):
         """Switch on the device with a time delay."""
         url = f"http://{self.ip_address}/app?token={self._token}"
-        payload = {
-            "method": "add_countdown_rule",
-            "params": {
-                "delay": int(delay),
-                "desired_states": {
-                    "on": True
-                },
-                "enable": True,
-                "remain": int(delay)
-            },
-            "terminalUUID": self._terminal_uuid
-        }
-
-        payload = {
-            "method": "securePassthrough",
-            "params": {
-                "request": self._tplink_cipher.encrypt(json.dumps(payload))
-            }
-        }
+        payload = self._get_secure_payload(
+            self._get_add_countdown_rule_payload(delay, True)
+        )
 
         response = self._get_response(url, payload)
 
@@ -281,15 +249,13 @@ class P100():
             error_message = self._error_codes[str(error_code)]
             raise Exception(f"Error Code: {error_code}, {error_message}")
 
-    def turn_off_with_delay(self, delay):
-        """Switch off the device with a time delay."""
-        url = f"http://{self.ip_address}/app?token={self._token}"
-        payload = {
+    def _get_add_countdown_rule_payload(self, delay, state):
+        return {
             "method": "add_countdown_rule",
             "params": {
                 "delay": int(delay),
                 "desired_states": {
-                    "on": False
+                    "on": state
                 },
                 "enable": True,
                 "remain": int(delay)
@@ -297,12 +263,12 @@ class P100():
             "terminalUUID": self._terminal_uuid
         }
 
-        payload = {
-            "method": "securePassthrough",
-            "params": {
-                "request": self._tplink_cipher.encrypt(json.dumps(payload))
-            }
-        }
+    def turn_off_with_delay(self, delay):
+        """Switch off the device with a time delay."""
+        url = f"http://{self.ip_address}/app?token={self._token}"
+        payload = self._get_secure_payload(
+            self._get_add_countdown_rule_payload(delay, False)
+        )
 
         response = self._get_response(url, payload)
 
@@ -328,3 +294,10 @@ def sha_digest(data):
             sb += hex_string
 
     return sb
+
+
+def _get_device_info_payload():
+    return {
+        "method": "get_device_info",
+        "requestTimeMils": int(round(time.time() * 1000)),
+    }

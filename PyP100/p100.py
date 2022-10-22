@@ -30,7 +30,7 @@ ERROR_CODES = {
 COOKIE_NAME = "TP_SESSIONID"
 
 
-class P100():
+class P100:
     """Control Tapo P100 sockets."""
 
     def __init__(self, ip_address, email, password):

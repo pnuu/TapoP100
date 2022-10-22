@@ -1,6 +1,6 @@
 """Module for handling Tapo P110 power monitoring sockets."""
 
-from PyP100 import PyP100
+from PyP100.p100 import P100
 
 import json
 import logging
@@ -9,7 +9,7 @@ import time
 LOGGER = logging.getLogger(__name__)
 
 
-class P110(PyP100.P100):
+class P110(P100):
     """Control Tapo P110 sockets."""
 
     def get_energy_usage(self):

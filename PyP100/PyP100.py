@@ -76,7 +76,7 @@ class P100():
         self._password = tp_link_cipher.TpLinkCipher.mime_encoder(password.encode("utf-8"))
 
         # Email Encoding
-        encoded_email = self.sha_digest_username(email)
+        encoded_email = sha_digest(email)
         self._email = tp_link_cipher.TpLinkCipher.mime_encoder(encoded_email.encode("utf-8"))
 
     def create_key_pair(self):
@@ -105,23 +105,6 @@ class P100():
             b_arr2.insert(i, do_final[i + 16])
 
         return tp_link_cipher.TpLinkCipher(b_arr, b_arr2)
-
-    def sha_digest_username(self, data):
-        """Digest username SHA."""
-        b_arr = data.encode("UTF-8")
-        digest = hashlib.sha1(b_arr).digest()
-
-        sb = ""
-        for i in range(0, len(digest)):
-            b = digest[i]
-            hex_string = hex(b & 255).replace("0x", "")
-            if len(hex_string) == 1:
-                sb += "0"
-                sb += hex_string
-            else:
-                sb += hex_string
-
-        return sb
 
     def handshake(self):
         """Handle handshake with the device."""
@@ -366,3 +349,21 @@ class P100():
             error_code = ast.literal_eval(decrypted_response)["error_code"]
             error_message = self._error_codes[str(error_code)]
             raise Exception(f"Error Code: {error_code}, {error_message}")
+
+
+def sha_digest(data):
+    """Digest string SHA."""
+    b_arr = data.encode("UTF-8")
+    digest = hashlib.sha1(b_arr).digest()
+
+    sb = ""
+    for i in range(0, len(digest)):
+        b = digest[i]
+        hex_string = hex(b & 255).replace("0x", "")
+        if len(hex_string) == 1:
+            sb += "0"
+            sb += hex_string
+        else:
+            sb += hex_string
+
+    return sb

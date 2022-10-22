@@ -12,43 +12,34 @@ pip3 install PyP100
 ## Usage
 Plugs - P100, P105 etc.
 ```python
-from PyP100 import PyP100
+from PyP100.p100 import P100
 
-p100 = PyP100.P100("192.168.X.X", "email@gmail.com", "Password123") #Creating a P100 plug object
+plug = P100("192.168.X.X", "email@gmail.com", "Password123")
 
-p100.handshake() #Creates the cookies required for further methods
-p100.login() #Sends credentials to the plug and creates AES Key and IV for further methods
-
-p100.turnOn() #Sends the turn on request
-p100.turnOff() #Sends the turn off request
-p100.getDeviceInfo() #Returns dict with all the device info
+plug.turn_on()  # Sends the turn on request
+plug.turn_off()  # Sends the turn off request
+plug.get_device_info()  # Returns dict with all the device info
 ```
 Bulbs - L510E, L530 etc.
 ```python
-from PyP100 import PyL530
+from PyP100.l530 import L530
 
-l530 = PyL530.L530("192.168.X.X", "email@gmail.com", "Password123") #Creating a L530 bulb object
+bulb = L530("192.168.X.X", "email@gmail.com", "Password123")
 
-l530.handshake() #Creates the cookies required for further methods
-l530.login() #Sends credentials to the plug and creates AES Key and IV for further methods
-
-#All the bulbs have the PyP100 functions and additionally allows for setting brightness, colour and white temperature
-l530.setBrightness(100) #Sends the set brightness request
-l530.setColorTemp(2700) #Sets the colour temperature to 2700 Kelvin (Warm White)
-l530.setColor(100, 100) #Sends the set colour request
+# All the bulbs have the P100 functions and additionally allows for setting brightness, colour and colour temperature
+bulb.set_brightness(100)  # Sends the set brightness request
+bulb.set_color_temp(2700)  # Sets the colour temperature to 2700 Kelvin (Warm White)
+bulb.set_hue_saturation(100, 100)  # Sets hue and saturation
 ```
 
-Energy Monitoring - P110
+Energy Monitoring plug - P110
 ```python
-from PyP100 import PyP110
+from PyP100.p110 import P110
 
-p110 = PyP110.P110("192.168.X.X", "email@gmail.com", "Password123") #Creating a P110 plug object
+plug = P110("192.168.X.X", "email@gmail.com", "Password123") #Creating a P110 plug object
 
-p110.handshake() #Creates the cookies required for further methods
-p110.login() #Sends credentials to the plug and creates AES Key and IV for further methods
-
-#PyP110 has all PyP100 functions and additionally allows to query energy usage infos
-p110.getEnergyUsage() #Returns dict with all the energy usage
+# P110 has all PyP100 functions and additionally allows to query energy usage infos
+plug.get_energy_usage()  # Returns a dict with all the energy usage statistics
 ```
 
 ## Contributing
@@ -61,7 +52,8 @@ Pull requests are welcome. For major changes, please open an issue first to disc
 [mochipon](https://github.com/mochipon)\
 [realzoulou](https://github.com/realzoulou)\
 [arrival-spring](https://github.com/arrival-spring)\
-[wlp7s0](https://github.com/wlp7s0)
+[wlp7s0](https://github.com/wlp7s0)\
+[pnuu](https:/github.com/pnuu)
 
 ## License
 [MIT](https://choosealicense.com/licenses/mit/)

@@ -1,22 +1,20 @@
 """Package for TP-Link Tapo devices."""
 
 import ast
-from base64 import b64decode
 import hashlib
 import logging
 import time
+from base64 import b64decode, b64encode
 
-from Crypto.PublicKey import RSA
 from Crypto.Cipher import PKCS1_v1_5
+from Crypto.PublicKey import RSA
 
 from PyP100 import tp_link_cipher
-from PyP100._base import TapoCommunication
-from PyP100._base import ERROR_CODES
-from PyP100.utils import get_response_with_retries
+from PyP100._base import ERROR_CODES, TapoCommunication
+from PyP100.l530 import L530
 from PyP100.p100 import P100
 from PyP100.p110 import P110
-from PyP100.l530 import L530
-
+from PyP100.utils import get_response_with_retries
 
 COOKIE_NAME = "TP_SESSIONID"
 DEVICES = {
@@ -112,9 +110,9 @@ def _get_handshake_payload(public_key):
 
 def _get_encrypted_credentials(email, password):
     """Encrypt credentials."""
-    password = tp_link_cipher.TpLinkCipher.mime_encoder(password.encode("utf-8"))
+    password = b64encode(password.encode("utf-8")).decode("UTF-8")
     encoded_email = sha_digest(email)
-    email = tp_link_cipher.TpLinkCipher.mime_encoder(encoded_email.encode("utf-8"))
+    email = b64encode(encoded_email.encode("utf-8")).decode("UTF-8")
 
     return email, password
 

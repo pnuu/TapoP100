@@ -17,13 +17,12 @@ class L530(TapoBase):
         Valid range is integers from 1 to 100.
         """
         self.turn_on()
-        url = f"http://{self.ip_address}/app?token={self._token}"
         payload = self._get_secure_payload(
             get_set_device_info_payload(self._terminal_uuid, params={"brightness": brightness})
         )
 
         try:
-            response = self._get_response(url, payload)
+            response = self._get_response(f"http://{self.ip_address}/app?token={self._token}", payload)
         finally:
             self._log_errors(response)
 
@@ -33,13 +32,12 @@ class L530(TapoBase):
         Valid range is from 2500 K to 6500 K.
         """
         self.turn_on()
-        url = f"http://{self.ip_address}/app?token={self._token}"
         payload = self._get_secure_payload(
             get_set_device_info_payload(self._terminal_uuid, params={"color_temp": colortemp})
         )
 
         try:
-            response = self._get_response(url, payload)
+            response = self._get_response(f"http://{self.ip_address}/app?token={self._token}", payload)
         finally:
             self._log_errors(response)
 
@@ -50,12 +48,11 @@ class L530(TapoBase):
         """
         self.set_color_temperature(0)
         self.turn_on()
-        url = f"http://{self.ip_address}/app?token={self._token}"
         payload = self._get_secure_payload(
             get_set_device_info_payload(self._terminal_uuid, params={"hue": hue, "saturation": saturation})
         )
 
         try:
-            response = self._get_response(url, payload)
+            response = self._get_response(f"http://{self.ip_address}/app?token={self._token}", payload)
         finally:
             self._log_errors(response)

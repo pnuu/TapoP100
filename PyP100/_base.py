@@ -1,17 +1,18 @@
 """Base module for TP-Link Tapo devices."""
 
-from requests.exceptions import ConnectTimeout
-from requests import Session
-
+import ast
 from base64 import b64decode
 import hashlib
-from Crypto.PublicKey import RSA
-import time
 import json
-from Crypto.Cipher import PKCS1_v1_5
-from . import tp_link_cipher
-import ast
+import time
 import uuid
+
+from Crypto.PublicKey import RSA
+from Crypto.Cipher import PKCS1_v1_5
+from requests import Session
+from requests.exceptions import ConnectTimeout
+
+from PyP100 import tp_link_cipher
 
 ERROR_CODES = {
     "0": "Success",

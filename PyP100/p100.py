@@ -37,6 +37,8 @@ class P100:
     def __init__(self, ip_address, email, password):
         """Initialize the class."""
         self.ip_address = ip_address
+        self._app_url = f"http://{self.ip_address}/app"
+        self._authenticated_url = None
         self._terminal_uuid = str(uuid.uuid4())
         self._session = Session()
         self._email = None
@@ -52,6 +54,7 @@ class P100:
         self._create_key_pair()
         self._handshake()
         self._login()
+        self._set_authenticated_url()
 
     def _encrypt_credentials(self, email, password):
         """Encrypt credentials."""
@@ -80,10 +83,9 @@ class P100:
 
     def _handshake(self):
         """Handle handshake with the device."""
-        url = f"http://{self.ip_address}/app"
         payload = self._get_handshake_payload()
 
-        response = _get_response_with_retries(self._session, url, payload)
+        response = _get_response_with_retries(self._session, self._app_url, payload)
         encrypted_key = response.json()["result"]["key"]
         self._tplink_cipher = self._decode_handshake_key(encrypted_key)
 
@@ -107,13 +109,12 @@ class P100:
 
     def _login(self):
         """Handle login with the device."""
-        url = f"http://{self.ip_address}/app"
         payload = self._get_secure_payload(
             self._get_login_payload()
         )
 
         try:
-            response = self._get_response(url, payload)
+            response = self._get_response(self._app_url, payload)
             self._token = ast.literal_eval(response)["result"]["token"]
         except Exception:
             self._log_errors(response)
@@ -141,15 +142,17 @@ class P100:
         response = _get_response_with_retries(self._session, url, payload, headers=self._headers)
         return self._tplink_cipher.decrypt(response.json()["result"]["response"])
 
+    def _set_authenticated_url(self):
+        self._authenticated_url = f"http://{self.ip_address}/app?token={self._token}"
+
     def turn_on(self):
         """Power on the device."""
-        url = f"http://{self.ip_address}/app?token={self._token}"
         payload = self._get_secure_payload(
             self._get_set_device_info_payload(params={"device_on": True})
         )
 
         try:
-            response = self._get_response(url, payload)
+            response = self._get_response(self._authenticated_url, payload)
         finally:
             self._log_errors(response)
 
@@ -169,13 +172,12 @@ class P100:
 
     def turn_off(self):
         """Power off the device."""
-        url = f"http://{self.ip_address}/app?token={self._token}"
         payload = self._get_secure_payload(
             self._get_set_device_info_payload(params={"device_on": False})
         )
 
         try:
-            response = self._get_response(url, payload)
+            response = self._get_response(self._authenticated_url, payload)
         finally:
             self._log_errors(response)
 
@@ -188,12 +190,11 @@ class P100:
 
     def get_device_info(self):
         """Retrieve current settings from the device."""
-        url = f"http://{self.ip_address}/app?token={self._token}"
         payload = self._get_secure_payload(
             _get_device_info_payload()
         )
 
-        response = self._get_response(url, payload)
+        response = self._get_response(self._authenticated_url, payload)
 
         return json.loads(response)
 
@@ -212,13 +213,12 @@ class P100:
 
     def turn_on_with_delay(self, delay):
         """Switch on the device with a time delay."""
-        url = f"http://{self.ip_address}/app?token={self._token}"
         payload = self._get_secure_payload(
             self._get_add_countdown_rule_payload(delay, True)
         )
 
         try:
-            response = self._get_response(url, payload)
+            response = self._get_response(self._authenticated_url, payload)
         finally:
             self._log_errors(response)
 
@@ -238,13 +238,12 @@ class P100:
 
     def turn_off_with_delay(self, delay):
         """Switch off the device with a time delay."""
-        url = f"http://{self.ip_address}/app?token={self._token}"
         payload = self._get_secure_payload(
             self._get_add_countdown_rule_payload(delay, False)
         )
 
         try:
-            response = self._get_response(url, payload)
+            response = self._get_response(self._authenticated_url, payload)
         finally:
             self._log_errors(response)
 

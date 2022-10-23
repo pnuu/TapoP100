@@ -3,6 +3,7 @@
 import ast
 from base64 import b64decode
 import hashlib
+import logging
 import time
 
 from Crypto.PublicKey import RSA
@@ -24,6 +25,7 @@ DEVICES = {
     'L510': L530,
     'L530': L530,
 }
+LOGGER = logging.getLogger()
 
 
 class Tapo(TapoCommunication):
@@ -60,7 +62,9 @@ class Tapo(TapoCommunication):
     def get_device(self):
         """Create device instance."""
         info = self.get_device_info()
-        return DEVICES[info['result']['model']](self.ip_address, self._token, self._tplink_cipher)
+        device = info['result']['model']
+        LOGGER.info(f"{device} initialized.")
+        return DEVICES[device](self.ip_address, self._token, self._tplink_cipher)
 
 
 def _create_key_pair():

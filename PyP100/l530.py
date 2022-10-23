@@ -41,15 +41,23 @@ class L530(TapoBase):
         finally:
             self._log_errors(response)
 
-    def set_hue_saturation(self, hue, saturation):
-        """Set hue and saturation.
+    def set_hue_saturation_value(self, hue, saturation, value):
+        """Set hue, saturation and value.
 
-        Valid range for both is from 0 to 100.
+        Valid ranges are:
+        - hue: 0 to 360 degrees
+        - saturation: 0 to 100 %
+        - value: 0 to 100 %
         """
         self.set_color_temperature(0)
         self.turn_on()
         payload = self._get_secure_payload(
-            get_set_device_info_payload(self._terminal_uuid, params={"hue": hue, "saturation": saturation})
+            get_set_device_info_payload(
+                self._terminal_uuid,
+                params={
+                    "hue": hue,
+                    "saturation": saturation,
+                    "brightness": value})
         )
 
         try:

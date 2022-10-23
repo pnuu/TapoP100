@@ -2,18 +2,15 @@
 
 import ast
 from base64 import b64decode
-import hashlib
 import json
 import logging
 import time
 import uuid
 
-from Crypto.PublicKey import RSA
-from Crypto.Cipher import PKCS1_v1_5
 from requests import Session
-from requests.exceptions import ConnectTimeout
 
-from PyP100 import tp_link_cipher
+from PyP100.utils import get_response_with_retries
+from PyP100.utils import get_set_device_info_payload
 
 ERROR_CODES = {
     "0": "Success",
@@ -24,51 +21,18 @@ ERROR_CODES = {
     "-1003": "JSON formatting error",
     "-1008": "Invalid value",
 }
-COOKIE_NAME = "TP_SESSIONID"
-RETRIES = 5
 
 LOGGER = logging.getLogger(__name__)
 
 
-class TapoBase:
-    """Base class for TP-Link Tapo devices."""
+class TapoCommunication:
+    """Base methods for communication with Tapo devices."""
 
-    def __init__(self, ip_address, email, password):
-        """Initialize the class."""
-        self.ip_address = ip_address
-        self._app_url = f"http://{self.ip_address}/app"
-        self._authenticated_url = None
-        self._terminal_uuid = str(uuid.uuid4())
-        self._session = Session()
-        self._headers = None
-        self._token = None
-        self._tplink_cipher = None
-        self._error_codes = ERROR_CODES
+    _session = Session()
 
-        self._handshake()
-        self._login(email, password)
-        self._set_authenticated_url()
-
-    def _handshake(self):
-        """Handle handshake with the device."""
-        private_key, public_key = _create_key_pair()
-        payload = _get_handshake_payload(public_key)
-        response = _get_response_with_retries(self._session, self._app_url, payload)
-        self._tplink_cipher = _decode_handshake_key(response.json()["result"]["key"], private_key)
-        self._headers = _get_headers(response)
-
-    def _login(self, email, password):
-        """Handle login with the device."""
-        email, password = _get_encrypted_credentials(email, password)
-        payload = self._get_secure_payload(
-            _get_login_payload(email, password)
-        )
-        try:
-            response = self._get_response(self._app_url, payload)
-            self._token = ast.literal_eval(response)["result"]["token"]
-        except Exception:
-            self._log_errors(response)
-            raise
+    def _get_response(self, url, payload):
+        response = get_response_with_retries(self._session, url, payload, headers=self._headers)
+        return self._tplink_cipher.decrypt(response.json()["result"]["response"])
 
     def _get_secure_payload(self, payload):
         return {
@@ -78,46 +42,53 @@ class TapoBase:
             }
         }
 
-    def _get_response(self, url, payload):
-        response = _get_response_with_retries(self._session, url, payload, headers=self._headers)
-        return self._tplink_cipher.decrypt(response.json()["result"]["response"])
+    def get_device_info(self):
+        """Retrieve current settings from the device."""
+        payload = self._get_secure_payload(
+            _get_device_info_payload()
+        )
 
-    def _set_authenticated_url(self):
-        self._authenticated_url = f"http://{self.ip_address}/app?token={self._token}"
+        response = self._get_response(f"http://{self.ip_address}/app?token={self._token}", payload)
+
+        return json.loads(response)
+
+
+class TapoBase(TapoCommunication):
+    """Base class for TP-Link Tapo devices."""
+
+    def __init__(self, ip_address, token, cipher):
+        """Initialize the class."""
+        self.ip_address = ip_address
+        self._token = token
+        self._tplink_cipher = cipher
+        self._terminal_uuid = str(uuid.uuid4())
+        self._headers = None
 
     def turn_on(self):
         """Power on the device."""
         payload = self._get_secure_payload(
-            self._get_set_device_info_payload(params={"device_on": True})
+            get_set_device_info_payload(self._terminal_uuid, params={"device_on": True})
         )
 
         try:
-            response = self._get_response(self._authenticated_url, payload)
+            response = self._get_response(f"http://{self.ip_address}/app?token={self._token}", payload)
         finally:
             self._log_errors(response)
 
     def _log_errors(self, response):
         if ast.literal_eval(response)["error_code"] != 0:
             error_code = ast.literal_eval(response)["error_code"]
-            error_message = self._error_codes[str(error_code)]
+            error_message = ERROR_CODES[str(error_code)]
             LOGGER.error(f"Error code: {error_code}, {error_message}")
-
-    def _get_set_device_info_payload(self, params=None):
-        return {
-            "method": "set_device_info",
-            "params": params,
-            "requestTimeMils": int(round(time.time() * 1000)),
-            "terminalUUID": self._terminal_uuid
-        }
 
     def turn_off(self):
         """Power off the device."""
         payload = self._get_secure_payload(
-            self._get_set_device_info_payload(params={"device_on": False})
+            get_set_device_info_payload(self._terminal_uuid, params={"device_on": False})
         )
 
         try:
-            response = self._get_response(self._authenticated_url, payload)
+            response = self._get_response(f"http://{self.ip_address}/app?token={self._token}", payload)
         finally:
             self._log_errors(response)
 
@@ -128,23 +99,13 @@ class TapoBase:
         else:
             self.turn_on()
 
-    def get_device_info(self):
-        """Retrieve current settings from the device."""
-        payload = self._get_secure_payload(
-            _get_device_info_payload()
-        )
-
-        response = self._get_response(self._authenticated_url, payload)
-
-        return json.loads(response)
-
     def get_device_name(self):
         """Get the device name."""
         data = self.get_device_info()
 
         if data["error_code"] != 0:
             error_code = ast.literal_eval(data)["error_code"]
-            error_message = self._error_codes[str(error_code)]
+            error_message = ERROR_CODES[str(error_code)]
             raise Exception(f"Error Code: {error_code}, {error_message}")
         else:
             encoded_name = data["result"]["nickname"]
@@ -158,7 +119,7 @@ class TapoBase:
         )
 
         try:
-            response = self._get_response(self._authenticated_url, payload)
+            response = self._get_response(f"http://{self.ip_address}/app?token={self._token}", payload)
         finally:
             self._log_errors(response)
 
@@ -183,90 +144,9 @@ class TapoBase:
         )
 
         try:
-            response = self._get_response(self._authenticated_url, payload)
+            response = self._get_response(f"http://{self.ip_address}/app?token={self._token}", payload)
         finally:
             self._log_errors(response)
-
-
-def _create_key_pair():
-    """Create private and public keys."""
-    keys = RSA.generate(1024)
-
-    private_key = keys.exportKey("PEM")
-    public_key = keys.public_key().exportKey("PEM")
-
-    return private_key, public_key
-
-
-def _decode_handshake_key(key, private_key):
-    """Decode handshake."""
-    decoded_key: bytes = b64decode(key.encode("UTF-8"))
-
-    cipher = PKCS1_v1_5.new(RSA.importKey(private_key))
-    decrypted_key = cipher.decrypt(decoded_key, None)
-    if decrypted_key is None:
-        raise ValueError("Decryption failed!")
-
-    return tp_link_cipher.TpLinkCipher(decrypted_key[:16], decrypted_key[16:])
-
-
-def _get_headers(response):
-    try:
-        return {
-            "Cookie": f"{COOKIE_NAME}={response.cookies[COOKIE_NAME]}"
-        }
-    except Exception:
-        error_code = response.json()["error_code"]
-        error_message = self._error_codes[str(error_code)]
-        raise Exception(f"Error Code: {error_code}, {error_message}")
-
-
-def _get_handshake_payload(public_key):
-    return {
-        "method": "handshake",
-        "params": {
-            "key": public_key.decode("utf-8"),
-            "requestTimeMils": int(round(time.time() * 1000))
-        }
-    }
-
-
-def _get_encrypted_credentials(email, password):
-    """Encrypt credentials."""
-    password = tp_link_cipher.TpLinkCipher.mime_encoder(password.encode("utf-8"))
-    encoded_email = sha_digest(email)
-    email = tp_link_cipher.TpLinkCipher.mime_encoder(encoded_email.encode("utf-8"))
-
-    return email, password
-
-
-def _get_login_payload(email, password):
-    return {
-        "method": "login_device",
-        "params": {
-            "username": email,
-            "password": password
-        },
-        "requestTimeMils": int(round(time.time() * 1000)),
-    }
-
-
-def sha_digest(data):
-    """Digest string SHA."""
-    b_arr = data.encode("UTF-8")
-    digest = hashlib.sha1(b_arr).digest()
-
-    sb = ""
-    for i in range(0, len(digest)):
-        b = digest[i]
-        hex_string = hex(b & 255).replace("0x", "")
-        if len(hex_string) == 1:
-            sb += "0"
-            sb += hex_string
-        else:
-            sb += hex_string
-
-    return sb
 
 
 def _get_device_info_payload():
@@ -274,12 +154,3 @@ def _get_device_info_payload():
         "method": "get_device_info",
         "requestTimeMils": int(round(time.time() * 1000)),
     }
-
-
-def _get_response_with_retries(session, url, payload, headers=None):
-    for _ in range(RETRIES):
-        try:
-            response = session.post(url, json=payload, headers=headers, timeout=2)
-            return response
-        except ConnectTimeout:
-            time.sleep(0.1)

@@ -3,6 +3,7 @@
 import logging
 
 from PyP100._base import TapoBase
+from PyP100.utils import get_set_device_info_payload
 
 LOGGER = logging.getLogger(__name__)
 
@@ -18,7 +19,7 @@ class L530(TapoBase):
         self.turn_on()
         url = f"http://{self.ip_address}/app?token={self._token}"
         payload = self._get_secure_payload(
-            self._get_set_device_info_payload(params={"brightness": brightness})
+            get_set_device_info_payload(self._terminal_uuid, params={"brightness": brightness})
         )
 
         try:
@@ -34,7 +35,7 @@ class L530(TapoBase):
         self.turn_on()
         url = f"http://{self.ip_address}/app?token={self._token}"
         payload = self._get_secure_payload(
-            self._get_set_device_info_payload(params={"color_temp": colortemp})
+            get_set_device_info_payload(self._terminal_uuid, params={"color_temp": colortemp})
         )
 
         try:
@@ -51,7 +52,7 @@ class L530(TapoBase):
         self.turn_on()
         url = f"http://{self.ip_address}/app?token={self._token}"
         payload = self._get_secure_payload(
-            self._get_set_device_info_payload(params={"hue": hue, "saturation": saturation})
+            get_set_device_info_payload(self._terminal_uuid, params={"hue": hue, "saturation": saturation})
         )
 
         try:

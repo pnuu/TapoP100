@@ -1,13 +1,13 @@
 """Module for controlling Tapo L530 light bulbs."""
 
-from PyP100.p100 import P100
-
 import logging
+
+from PyP100._base import TapoBase
 
 LOGGER = logging.getLogger(__name__)
 
 
-class L530(P100):
+class L530(TapoBase):
     """Control Tapo L530 light bulbs."""
 
     def set_brightness(self, brightness):

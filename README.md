@@ -44,7 +44,9 @@ device.set_brightness(100)
 # Set color temperature for the white light (2700 K, warm white)
 device.set_color_temp(2700)
 # Set hue, saturation and value (HSV colorspace) for L530E
-device.set_hue_saturation(240, 100, 100)  # Blue
+device.set_hsv(240, 100, 100)  # Blue
+# Set RGB colors
+device.set_rgb(255, 0, 255)  # Purple
 ```
 
 ### Energy Monitoring plug - P110

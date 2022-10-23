@@ -41,7 +41,7 @@ class L530(TapoBase):
         finally:
             self._log_errors(response)
 
-    def set_hue_saturation_value(self, hue, saturation, value):
+    def set_hsv(self, hue, saturation, value):
         """Set hue, saturation and value.
 
         Valid ranges are:
@@ -64,3 +64,49 @@ class L530(TapoBase):
             response = self._get_response(f"http://{self.ip_address}/app?token={self._token}", payload)
         finally:
             self._log_errors(response)
+
+    def set_rgb(self, red, green, blue):
+        """Set RGB colors.
+
+        Valid ranges are from 0 to 255 for each component.
+        """
+        rgb = RGB2HSV(red, green, blue)
+        if rgb.value == 0:
+            self.turn_off()
+        else:
+            print(rgb.hue, rgb.saturation, rgb.value)
+            self.set_hsv(rgb.hue, rgb.saturation, rgb.value)
+
+
+class RGB2HSV:
+    """Convert RGB values to HSV."""
+
+    def __init__(self, red, green, blue):
+        """Initialize the class."""
+        self.red = red / 255.
+        self.green = green / 255.
+        self.blue = blue / 255.
+        self._c_max = max(self.red, self.green, self.blue)
+        self._c_min = min(self.red, self.green, self.blue)
+        self._delta = self._c_max - self._c_min
+        self.hue = self._get_hue()
+        self.saturation = self._get_saturation()
+        self.value = self._get_value()
+
+    def _get_hue(self):
+        if self._delta == 0:
+            hue = 0
+        elif self._c_max == self.red:
+            hue = ((self.green - self.blue) / self._delta) % 6
+        elif self._c_max == self.green:
+            hue = (self.blue - self.red) / self._delta + 2
+        else:
+            hue = (self.red - self.green) / self._delta + 4
+
+        return int(60 * hue)
+
+    def _get_saturation(self):
+        return 0 if self._c_max == 0 else int(100 * self._delta / self._c_max)
+
+    def _get_value(self):
+        return int(100 * self._c_max)

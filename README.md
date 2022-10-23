@@ -10,36 +10,51 @@ pip3 install PyP100
 ```
 
 ## Usage
-Plugs - P100, P105 etc.
+
+### Device initialization.
+Any supported device can be initialized using the ``Tapo`` utility class.
+
 ```python
-from PyP100.p100 import P100
+from PyP100 import Tapo
 
-plug = P100("192.168.X.X", "email@gmail.com", "Password123")
-
-plug.turn_on()  # Sends the turn on request
-plug.turn_off()  # Sends the turn off request
-plug.get_device_info()  # Returns dict with all the device info
-```
-Bulbs - L510E, L530 etc.
-```python
-from PyP100.l530 import L530
-
-bulb = L530("192.168.X.X", "email@gmail.com", "Password123")
-
-# All the bulbs have the P100 functions and additionally allows for setting brightness, colour and colour temperature
-bulb.set_brightness(100)  # Sends the set brightness request
-bulb.set_color_temp(2700)  # Sets the colour temperature to 2700 Kelvin (Warm White)
-bulb.set_hue_saturation(100, 100)  # Sets hue and saturation
+device = Tapo("192.168.X.X", "email@gmail.com", "Password123").get_device()
 ```
 
-Energy Monitoring plug - P110
+### Plugs - P100, P105 etc.
+
+The plug devices have the following methods. Initialize the device as shown above.
+
 ```python
-from PyP100.p110 import P110
+# Power on the device
+device.turn_on()
+# Power off the device
+device.turn_off()
+# Get a dictionary of device information
+device.get_device_info()
+```
 
-plug = P110("192.168.X.X", "email@gmail.com", "Password123") #Creating a P110 plug object
+### Bulbs - L510E, L530 etc.
 
-# P110 has all PyP100 functions and additionally allows to query energy usage infos
-plug.get_energy_usage()  # Returns a dict with all the energy usage statistics
+In addition to the commands for the plugs above, additional commands are available for light bulbs.
+Initialize the device as shown above.
+
+```python
+# Set brightness level
+device.set_brightness(100)
+# Set color temperature for the white light (2700 K, warm white)
+device.set_color_temp(2700)
+# Set hue and saturation for L530E
+device.set_hue_saturation(100, 100)
+```
+
+### Energy Monitoring plug - P110
+
+In addition to P100 plugs, the following command is available for P110 power monitoring plug.
+Initialize the device as shown above.
+
+```python
+# Returns a dict with all the energy usage statistics
+device.get_energy_usage()
 ```
 
 ## Contributing

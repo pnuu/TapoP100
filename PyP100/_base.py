@@ -4,6 +4,7 @@ import ast
 from base64 import b64decode
 import hashlib
 import json
+import logging
 import time
 import uuid
 
@@ -26,6 +27,8 @@ ERROR_CODES = {
 COOKIE_NAME = "TP_SESSIONID"
 RETRIES = 5
 
+LOGGER = logging.getLogger(__name__)
+
 
 class TapoBase:
     """Base class for TP-Link Tapo devices."""
@@ -37,78 +40,29 @@ class TapoBase:
         self._authenticated_url = None
         self._terminal_uuid = str(uuid.uuid4())
         self._session = Session()
-        self._email = None
-        self._password = None
-        self._private_key = None
-        self._public_key = None
         self._headers = None
         self._token = None
         self._tplink_cipher = None
         self._error_codes = ERROR_CODES
 
-        self._encrypt_credentials(email, password)
-        self._create_key_pair()
         self._handshake()
-        self._login()
+        self._login(email, password)
         self._set_authenticated_url()
-
-    def _encrypt_credentials(self, email, password):
-        """Encrypt credentials."""
-        self._password = tp_link_cipher.TpLinkCipher.mime_encoder(password.encode("utf-8"))
-        encoded_email = sha_digest(email)
-        self._email = tp_link_cipher.TpLinkCipher.mime_encoder(encoded_email.encode("utf-8"))
-
-    def _create_key_pair(self):
-        """Create private and public keys."""
-        keys = RSA.generate(1024)
-
-        self._private_key = keys.exportKey("PEM")
-        self._public_key = keys.public_key().exportKey("PEM")
-
-    def _decode_handshake_key(self, key):
-        """Decode handshake."""
-        decoded_key: bytes = b64decode(key.encode("UTF-8"))
-        decoded_private_key: bytes = self._private_key
-
-        cipher = PKCS1_v1_5.new(RSA.importKey(decoded_private_key))
-        decrypted_key = cipher.decrypt(decoded_key, None)
-        if decrypted_key is None:
-            raise ValueError("Decryption failed!")
-
-        return tp_link_cipher.TpLinkCipher(decrypted_key[:16], decrypted_key[16:])
 
     def _handshake(self):
         """Handle handshake with the device."""
-        payload = self._get_handshake_payload()
-
+        private_key, public_key = _create_key_pair()
+        payload = _get_handshake_payload(public_key)
         response = _get_response_with_retries(self._session, self._app_url, payload)
-        encrypted_key = response.json()["result"]["key"]
-        self._tplink_cipher = self._decode_handshake_key(encrypted_key)
+        self._tplink_cipher = _decode_handshake_key(response.json()["result"]["key"], private_key)
+        self._headers = _get_headers(response)
 
-        try:
-            self._headers = {
-                "Cookie": f"{COOKIE_NAME}={response.cookies[COOKIE_NAME]}"
-            }
-        except Exception:
-            error_code = response.json()["error_code"]
-            error_message = self._error_codes[str(error_code)]
-            raise Exception(f"Error Code: {error_code}, {error_message}")
-
-    def _get_handshake_payload(self):
-        return {
-            "method": "handshake",
-            "params": {
-                "key": self._public_key.decode("utf-8"),
-                "requestTimeMils": int(round(time.time() * 1000))
-            }
-        }
-
-    def _login(self):
+    def _login(self, email, password):
         """Handle login with the device."""
+        email, password = _get_encrypted_credentials(email, password)
         payload = self._get_secure_payload(
-            self._get_login_payload()
+            _get_login_payload(email, password)
         )
-
         try:
             response = self._get_response(self._app_url, payload)
             self._token = ast.literal_eval(response)["result"]["token"]
@@ -122,16 +76,6 @@ class TapoBase:
             "params": {
                 "request": self._tplink_cipher.encrypt(json.dumps(payload))
             }
-        }
-
-    def _get_login_payload(self):
-        return {
-            "method": "login_device",
-            "params": {
-                "username": self._email,
-                "password": self._password
-            },
-            "requestTimeMils": int(round(time.time() * 1000)),
         }
 
     def _get_response(self, url, payload):
@@ -242,6 +186,69 @@ class TapoBase:
             response = self._get_response(self._authenticated_url, payload)
         finally:
             self._log_errors(response)
+
+
+def _create_key_pair():
+    """Create private and public keys."""
+    keys = RSA.generate(1024)
+
+    private_key = keys.exportKey("PEM")
+    public_key = keys.public_key().exportKey("PEM")
+
+    return private_key, public_key
+
+
+def _decode_handshake_key(key, private_key):
+    """Decode handshake."""
+    decoded_key: bytes = b64decode(key.encode("UTF-8"))
+
+    cipher = PKCS1_v1_5.new(RSA.importKey(private_key))
+    decrypted_key = cipher.decrypt(decoded_key, None)
+    if decrypted_key is None:
+        raise ValueError("Decryption failed!")
+
+    return tp_link_cipher.TpLinkCipher(decrypted_key[:16], decrypted_key[16:])
+
+
+def _get_headers(response):
+    try:
+        return {
+            "Cookie": f"{COOKIE_NAME}={response.cookies[COOKIE_NAME]}"
+        }
+    except Exception:
+        error_code = response.json()["error_code"]
+        error_message = self._error_codes[str(error_code)]
+        raise Exception(f"Error Code: {error_code}, {error_message}")
+
+
+def _get_handshake_payload(public_key):
+    return {
+        "method": "handshake",
+        "params": {
+            "key": public_key.decode("utf-8"),
+            "requestTimeMils": int(round(time.time() * 1000))
+        }
+    }
+
+
+def _get_encrypted_credentials(email, password):
+    """Encrypt credentials."""
+    password = tp_link_cipher.TpLinkCipher.mime_encoder(password.encode("utf-8"))
+    encoded_email = sha_digest(email)
+    email = tp_link_cipher.TpLinkCipher.mime_encoder(encoded_email.encode("utf-8"))
+
+    return email, password
+
+
+def _get_login_payload(email, password):
+    return {
+        "method": "login_device",
+        "params": {
+            "username": email,
+            "password": password
+        },
+        "requestTimeMils": int(round(time.time() * 1000)),
+    }
 
 
 def sha_digest(data):

@@ -74,7 +74,6 @@ class L530(TapoBase):
         if rgb.value == 0:
             self.turn_off()
         else:
-            print(rgb.hue, rgb.saturation, rgb.value)
             self.set_hsv(rgb.hue, rgb.saturation, rgb.value)
 
 
